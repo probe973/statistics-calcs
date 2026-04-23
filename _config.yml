@@ -1,0 +1,40 @@
+# _config.yml
+
+# Site Settings
+title:            Statistics Calculators
+description:      Tools to analyse data 
+author:           UEA
+
+baseurl:          "/statistics-calcs"
+
+url:              "https://probe973.github.io/statistics-calcs"
+
+# Jekyll Build Settings
+markdown:         kramdown
+highlighter:      rouge
+plugins:
+  # No SEO plugins needed.
+
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+  math_engine: mathjax
+
+# Exclude from processing.
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor/bundle/
+  - vendor/cache/
+  - vendor/gems/
+  - vendor/ruby/
+  - LICENSE.md
+  - README.md
+
+# Defaults
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: "default"
