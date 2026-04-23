@@ -45,5 +45,5 @@ title: Compare Two Independent Groups
     <div id="outputContent"></div>
 </div>
 
-<script src="{{ '/assets/js/stats-lib.js' | relative_url }}"></script>
-<script src="{{ '/assets/js/compare-two.js' | relative_url }}"></script>
+<script src="/assets/js/stats-lib.js"></script>
+<script src="/assets/js/compare-two.js"></script>
