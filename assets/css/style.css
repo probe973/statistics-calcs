@@ -1,0 +1,131 @@
+/* --- Core Variables & Reset --- */
+:root {
+    --primary-color: #2c3e50;
+    --secondary-color: #34495e;
+    --accent-color: #0056b3;
+    --bg-color: #f8f9fa;
+    --text-color: #333;
+    --border-color: #ced4da;
+    --success-color: #28a745;
+}
+
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    line-height: 1.6;
+    color: var(--text-color);
+    background-color: var(--bg-color);
+    margin: 0;
+}
+
+.container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* --- Accessibility --- */
+.skip-link {
+    position: absolute;
+    top: -40px;
+    left: 0;
+    background: var(--accent-color);
+    color: white;
+    padding: 8px;
+    z-index: 100;
+}
+.skip-link:focus { top: 0; }
+
+/* --- Header & Footer --- */
+header {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 2rem 0;
+    margin-bottom: 2rem;
+    text-align: center;
+}
+
+header h1 { margin: 0; font-size: 2.2rem; }
+header p { margin: 0.5rem 0 0; opacity: 0.9; }
+
+footer {
+    margin-top: 4rem;
+    padding: 2rem 0;
+    border-top: 1px solid var(--border-color);
+    text-align: center;
+    font-size: 0.9rem;
+}
+
+/* --- Stats Tool UI Elements --- */
+.tool-section {
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    margin-bottom: 2rem;
+}
+
+/* Data Inputs */
+.data-entry-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin: 1.5rem 0;
+}
+
+label { font-weight: bold; display: block; margin-bottom: 0.5rem; }
+
+textarea.data-input {
+    width: 100%;
+    height: 180px;
+    padding: 10px;
+    border: 2px solid var(--border-color);
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 1rem;
+    box-sizing: border-box;
+}
+
+textarea.data-input:focus {
+    border-color: var(--accent-color);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 86, 179, 0.25);
+}
+
+/* Buttons */
+.btn {
+    display: inline-block;
+    padding: 10px 20px;
+    background-color: var(--accent-color);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.2s;
+}
+
+.btn:hover, .btn:focus { background-color: #004494; }
+
+/* Diagnostics Table */
+.diag-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+}
+
+.diag-table th, .diag-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.diag-table th { background-color: #f1f3f5; }
+
+/* Feedback Messages */
+.help-note {
+    background-color: #e7f3ff;
+    border-left: 5px solid var(--accent-color);
+    padding: 15px;
+    margin: 1rem 0;
+}
