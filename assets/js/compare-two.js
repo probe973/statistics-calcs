@@ -3,11 +3,11 @@ document.getElementById('analyzeBtn').addEventListener('click', function() {
     const groupB = StatsLib.parseData(document.getElementById('dataB').value);
 
     if (groupA.length < 3 || groupB.length < 3) {
-        alert("Please enter at least 3 numbers per group to perform a valid analysis.");
+        alert("Please enter at least 3 numbers per group.");
         return;
     }
 
-    // 1. DATA DIAGNOSTICS
+    // 1. DIAGNOSTICS
     const skewA = StatsLib.getSkewness(groupA);
     const skewB = StatsLib.getSkewness(groupB);
     const swA = StatsLib.checkNormality(groupA);
@@ -15,7 +15,6 @@ document.getElementById('analyzeBtn').addEventListener('click', function() {
     const varA = StatsLib.getVariance(groupA);
     const varB = StatsLib.getVariance(groupB);
 
-    // F-Test for Equality of Variances
     const fRatio = varA > varB ? varA / varB : varB / varA;
     const df1 = varA > varB ? groupA.length - 1 : groupB.length - 1;
     const df2 = varA > varB ? groupB.length - 1 : groupA.length - 1;
@@ -25,53 +24,66 @@ document.getElementById('analyzeBtn').addEventListener('click', function() {
     // 2. THE EVIDENCE BOARD (Assumptions Table)
     document.getElementById('evidenceBody').innerHTML = `
         <tr>
-            <th>Diagnostic Test</th>
-            <th>Group A Statistics</th>
-            <th>Group B Statistics</th>
+            <th>Diagnostic Metric</th>
+            <th>Group A Results</th>
+            <th>Group B Results</th>
         </tr>
         <tr>
-            <td><strong>Skewness (Symmetry)</strong><br>Testing if data is leaning. We want Z between ±1.96.</td>
-            <td>Skew: ${skewA.skew.toFixed(3)}<br>Z-Skew: ${skewA.z.toFixed(3)}</td>
-            <td>Skew: ${skewB.skew.toFixed(3)}<br>Z-Skew: ${skewB.z.toFixed(3)}</td>
+            <td><strong>Skewness (g1)</strong></td>
+            <td>${skewA.skew.toFixed(3)}</td>
+            <td>${skewB.skew.toFixed(3)}</td>
         </tr>
         <tr>
-            <td><strong>Shapiro-Wilk (Normality)</strong><br>Testing for Bell Curve fit. We want p > .05.</td>
-            <td class="${swA.isNormal ? 'v-pass' : 'v-fail'}">W: ${swA.W.toFixed(3)}<br>p = ${swA.pValue}</td>
-            <td class="${swB.isNormal ? 'v-pass' : 'v-fail'}">W: ${swB.W.toFixed(3)}<br>p = ${swB.pValue}</td>
+            <td><strong>Z-Skew</strong></td>
+            <td>${skewA.z.toFixed(3)}</td>
+            <td>${skewB.z.toFixed(3)}</td>
         </tr>
         <tr>
-            <td><strong>F-Test (Equal Variance)</strong><br>Comparing group spreads. We want p > .05.</td>
+            <td><strong>Shapiro-Wilk (W)</strong></td>
+            <td>${swA.W.toFixed(3)}</td>
+            <td>${swB.W.toFixed(3)}</td>
+        </tr>
+        <tr>
+            <td><strong>Shapiro-Wilk (p)</strong></td>
+            <td class="${swA.isNormal ? 'v-pass' : 'v-fail'}">${swA.pValue}</td>
+            <td class="${swB.isNormal ? 'v-pass' : 'v-fail'}">${swB.pValue}</td>
+        </tr>
+        <tr>
+            <td><strong>Variance (s²)</strong></td>
+            <td>${varA.toFixed(3)}</td>
+            <td>${varB.toFixed(3)}</td>
+        </tr>
+        <tr>
+            <td><strong>F-Test p-value</strong></td>
             <td colspan="2" style="text-align:center;" class="${variancesEqual ? 'v-pass' : 'v-fail'}">
-                F(${df1}, ${df2}) = ${fRatio.toFixed(2)}, p = ${fPValue.toFixed(4)}<br>
-                <strong>Result:</strong> ${variancesEqual ? "Equal Variances Assumed" : "Unequal Variances Detected"}
+                F(${df1}, ${df2}) = ${fRatio.toFixed(2)}, p = ${fPValue.toFixed(4)}
             </td>
         </tr>
     `;
 
-    // 3. DECISION LOGIC & RECOMMENDATION
+    // 3. FORMAL EXPLANATIONS (As requested, after the table)
     const isNormal = swA.isNormal && swB.isNormal && !skewA.isSignificant && !skewB.isSignificant;
     const adviceDiv = document.getElementById('consultantAdvice');
     
-    let recommendation = "";
-    if (!isNormal) {
-        recommendation = "<strong>Recommendation: Mann-Whitney U.</strong> Your data violated normality or symmetry. This test compares ranks rather than means to avoid outlier distortion.";
-    } else if (variancesEqual) {
-        recommendation = "<strong>Recommendation: Student's T-Test.</strong> Both groups are normal and have similar spreads. This is the standard parametric approach.";
-    } else {
-        recommendation = "<strong>Recommendation: Welch's T-Test.</strong> Data is normal, but the spreads are significantly different. Welch's corrects the Degrees of Freedom for accuracy.";
-    }
-
     adviceDiv.innerHTML = `
-        <div class="logic-container">
-            <h4>Consultant Guidance</h4>
-            <p>${recommendation}</p>
+        <div class="logic-container" style="margin-top: 20px; padding: 15px; border: 1px solid #ddd; background: #f9f9f9;">
+            <h4>How to interpret these statistics:</h4>
+            <ul style="line-height: 1.6;">
+                <li><strong>Z-Skew:</strong> This measures symmetry. If the value is between <strong>-1.96 and +1.96</strong>, we assume the data is symmetrical.</li>
+                <li><strong>Shapiro-Wilk (p):</strong> This tests for a Bell Curve (Normality). If <strong>p > .05</strong>, we fail to reject the null hypothesis and assume the data is Normal.</li>
+                <li><strong>F-Test (p):</strong> This tests for Equality of Variance. If <strong>p > .05</strong>, we assume the groups have similar spreads.</li>
+            </ul>
+            <hr>
+            <p><strong>Statistical Recommendation:</strong><br>
+            ${!isNormal ? "Data is non-normal or skewed. Use <strong>Mann-Whitney U</strong>." : 
+              (variancesEqual ? "Data is normal and variances are equal. Use <strong>Student's T-Test</strong>." : 
+              "Data is normal but variances are unequal. Use <strong>Welch's T-Test</strong>.")}
+            </p>
         </div>
     `;
 
-    // Show Board and Execution Buttons
     document.getElementById('evidenceBoard').style.display = 'block';
     document.getElementById('testButtons').innerHTML = `
-        <p><strong>Select Analysis to Execute:</strong></p>
         <button class="btn-primary" onclick="runFinalTest('student')">Execute Student's T-Test</button>
         <button class="btn-primary" onclick="runFinalTest('welch')" style="margin-left:10px;">Execute Welch's T-Test</button>
         <button class="btn-primary" onclick="runFinalTest('u')" style="margin-left:10px;">Execute Mann-Whitney U</button>
@@ -100,7 +112,7 @@ window.runFinalTest = function(type) {
         statLine = `t(${df}) = ${t.toFixed(3)}`;
         effectLabel = "Cohen's d";
         effectSize = Math.abs((m1 - m2) / Math.sqrt(pooledVar)).toFixed(3);
-        effectDesc = "Calculated using pooled variance. 0.5 is a medium effect.";
+        effectDesc = "A standardized measure of the difference between means.";
     } else if (type === 'welch') {
         testName = "Welch's T-Test (Unequal Variances)";
         const se1 = v1/n1, se2 = v2/n2;
@@ -110,7 +122,7 @@ window.runFinalTest = function(type) {
         statLine = `t(${df.toFixed(2)}) = ${t.toFixed(3)}`;
         effectLabel = "Cohen's d";
         effectSize = Math.abs((m1 - m2) / Math.sqrt(((n1-1)*v1 + (n2-1)*v2) / (n1+n2-2))).toFixed(3);
-        effectDesc = "Adjusted for unequal variance between groups.";
+        effectDesc = "Adjusted for unequal group variances.";
     } else {
         testName = "Mann-Whitney U Test";
         const combined = [...groupA.map(v => ({v, g: 'a'})), ...groupB.map(v => ({v, g: 'b'}))].sort((x, y) => x.v - y.v);
@@ -123,4 +135,20 @@ window.runFinalTest = function(type) {
         const z = (u - mu) / sigma;
         pVal = 2 * (1 - StatsLib.normalCDF(Math.abs(z)));
         statLine = `U = ${u.toFixed(1)} (z = ${z.toFixed(3)})`;
-        effect
+        effectLabel = "Rank-Biserial r";
+        effectSize = Math.abs(1 - (2 * u1) / (n1 * n2)).toFixed(3);
+        effectDesc = "Strength of relationship based on ranks.";
+    }
+
+    output.innerHTML = `
+        <div class="final-report">
+            <h3>Final Result: ${testName}</h3>
+            <p>Group A: M = ${m1.toFixed(2)}, SD = ${sd1.toFixed(2)} (n=${n1})</p>
+            <p>Group B: M = ${m2.toFixed(2)}, SD = ${sd2.toFixed(2)} (n=${n2})</p>
+            <p><strong>Statistic:</strong> ${statLine}</p>
+            <p><strong>p-value:</strong> ${pVal.toFixed(4)}</p>
+            <p><strong>Verdict:</strong> ${pVal < 0.05 ? "Significant difference. Reject the null hypothesis." : "Non-significant difference. Fail to reject the null hypothesis."}</p>
+            <p><strong>${effectLabel}:</strong> ${effectSize} (${effectDesc})</p>
+        </div>
+    `;
+};
