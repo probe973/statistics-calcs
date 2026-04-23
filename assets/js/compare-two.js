@@ -1,7 +1,6 @@
 window.renderExecutionButtons = function() {
     var html = "<div style='margin-top:25px; padding:20px; background:#f8f9fa; border:1px solid #dee2e6; border-radius:8px;'>";
     html += "<h4>Step 2: Inferential Analysis</h4>";
-    html += "<p style='font-size:0.9em; color:#666;'>Select the appropriate test based on the diagnostic evidence above.</p>";
     html += "<button class='btn-primary' onclick='runFinalAnalysis(\"student\")'>Student's T-Test</button> ";
     html += "<button class='btn-primary' onclick='runFinalAnalysis(\"welch\")'>Welch's T-Test</button> ";
     html += "<button class='btn-primary' onclick='runFinalAnalysis(\"u\")'>Mann-Whitney U</button>";
@@ -32,7 +31,7 @@ window.runFinalAnalysis = function(type) {
             var t = diff / Math.sqrt(pooledVar * (1/n1 + 1/n2));
             pVal = 2 * (1 - StatsLib.normalCDF(Math.abs(t))); 
             statLine = "t(" + df + ") = " + t.toFixed(3);
-            logicExp = "This procedure assumes homogeneity of variance and normality across both distributions.";
+            logicExp = "This procedure assumes homogeneity of variance and normality.";
         } else {
             testName = "Welch's Unequal Variances T-Test";
             var se1 = v1/n1, se2 = v2/n2;
@@ -40,7 +39,7 @@ window.runFinalAnalysis = function(type) {
             var tW = diff / Math.sqrt(se1 + se2);
             pVal = 2 * (1 - StatsLib.normalCDF(Math.abs(tW)));
             statLine = "t(" + dfW.toFixed(2) + ") = " + tW.toFixed(3);
-            logicExp = "This procedure is robust against violations of the equal variance (homoscedasticity) assumption.";
+            logicExp = "This procedure is robust against violations of the equal variance assumption.";
         }
     } else {
         testName = "Mann-Whitney U Test";
@@ -53,14 +52,12 @@ window.runFinalAnalysis = function(type) {
         combined.forEach(function(d){ if(d.g === 'a') r1 += d.rank; });
         var u1 = r1 - (n1 * (n1 + 1)) / 2;
         var uVal = Math.min(u1, (n1 * n2) - u1);
-        var mu = (n1 * n2) / 2;
-        var sigma = Math.sqrt((n1 * n2 * (n1 + n2 + 1)) / 12);
-        var z = (uVal - mu) / sigma;
+        var z = (uVal - (n1 * n2 / 2)) / Math.sqrt(n1 * n2 * (n1 + n2 + 1) / 12);
         pVal = 2 * (1 - StatsLib.normalCDF(Math.abs(z)));
         statLine = "U = " + uVal.toFixed(1) + ", z = " + z.toFixed(3);
         effLabel = "Rank-Biserial Correlation (r)";
         effVal = (1 - (2 * uVal) / (n1 * n2)).toFixed(3);
-        logicExp = "This non-parametric test evaluates differences in stochastic dominance based on rank-order.";
+        logicExp = "This non-parametric test evaluates differences in rank-order distributions.";
     }
 
     var isSig = pVal < 0.05;
@@ -69,9 +66,9 @@ window.runFinalAnalysis = function(type) {
     report += "<p><strong>Significance:</strong> " + (isSig ? "p < .05" : "p > .05") + " (p = " + pVal.toFixed(4) + ")</p>";
     report += "<p><strong>Test Statistic:</strong> " + statLine + "</p>";
     report += "<p><strong>Effect Size (" + effLabel + "):</strong> " + effVal + "</p>";
-    report += "<hr><h4>Statistical Interpretation</h4>";
+    report += "<hr><h4>Statistical Write-up</h4>";
     report += "<p>" + logicExp + "</p>";
-    report += "<p>" + (isSig ? "The null hypothesis is rejected. The data provide sufficient evidence to conclude a statistically significant difference exists between these groups." : "The data fail to provide sufficient evidence to reject the null hypothesis at the .05 alpha level. The observed difference is not statistically significant.") + "</p>";
+    report += "<p>" + (isSig ? "The null hypothesis is rejected. The data provide sufficient evidence to conclude a statistically significant difference exists between the group distributions." : "The data fail to provide sufficient evidence to reject the null hypothesis at the .05 alpha level. The observed difference is not statistically significant.") + "</p>";
     report += "</div>";
 
     document.getElementById('finalResults').style.display = 'block';
