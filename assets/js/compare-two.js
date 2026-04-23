@@ -1,13 +1,11 @@
 window.renderExecutionButtons = function() {
     const btnContainer = document.getElementById('testButtons');
-    // We make sure the container is actually visible
-    btnContainer.style.display = 'block'; 
     btnContainer.innerHTML = `
         <div style="margin-top: 25px; padding: 20px; background: #eef2f7; border: 1px solid #007bff; border-radius: 8px;">
-            <p><strong>Step 2: Choose your Test</strong></p>
-            <button class="btn-primary" onclick="runFinalAnalysis('student')">Run Student's T</button>
-            <button class="btn-primary" onclick="runFinalAnalysis('welch')" style="margin-left:10px;">Run Welch's T</button>
-            <button class="btn-primary" onclick="runFinalAnalysis('u')" style="margin-left:10px;">Run Mann-Whitney U</button>
+            <p><strong>Step 2: Execute Statistical Test</strong></p>
+            <button class="btn-primary" onclick="runFinalAnalysis('student')">Run Student's T (Equal Variance)</button>
+            <button class="btn-primary" onclick="runFinalAnalysis('welch')" style="margin-left:10px;">Run Welch's T (Unequal Variance)</button>
+            <button class="btn-primary" onclick="runFinalAnalysis('u')" style="margin-left:10px;">Run Mann-Whitney U (Non-Parametric)</button>
         </div>
     `;
 };
@@ -25,11 +23,11 @@ window.runFinalAnalysis = function(type) {
     let testName, statLine, pVal;
 
     if (type === 'student') {
-        testName = "Student's T-Test";
+        testName = "Student's Independent T-Test";
         const df = n1 + n2 - 2;
         const pooledVar = ((n1 - 1) * v1 + (n2 - 1) * v2) / df;
         const t = (m1 - m2) / Math.sqrt(pooledVar * (1/n1 + 1/n2));
-        pVal = 2 * (1 - StatsLib.normalCDF(Math.abs(t)));
+        pVal = 2 * (1 - StatsLib.normalCDF(Math.abs(t))); // Simplified for large N or Z-approx
         statLine = `t(${df}) = ${t.toFixed(3)}`;
     } else if (type === 'welch') {
         testName = "Welch's T-Test";
@@ -39,7 +37,8 @@ window.runFinalAnalysis = function(type) {
         pVal = 2 * (1 - StatsLib.normalCDF(Math.abs(t)));
         statLine = `t(${df.toFixed(2)}) = ${t.toFixed(3)}`;
     } else {
-        testName = "Mann-Whitney U";
+        testName = "Mann-Whitney U Test";
+        // Simple U-test approximation
         const combined = [...groupA.map(v => ({v, g: 'a'})), ...groupB.map(v => ({v, g: 'b'}))].sort((x, y) => x.v - y.v);
         combined.forEach((d, i) => d.rank = i + 1);
         const r1 = combined.filter(d => d.g === 'a').reduce((s, d) => s + d.rank, 0);
@@ -53,11 +52,14 @@ window.runFinalAnalysis = function(type) {
     }
 
     output.innerHTML = `
-        <div style="border-left: 4px solid #28a745; padding-left: 15px;">
-            <h3>${testName}</h3>
-            <p><strong>Statistic:</strong> ${statLine}</p>
+        <div style="border-left: 4px solid #007bff; padding-left: 15px; background: #fff; padding: 15px;">
+            <h4 style="margin-top:0;">${testName} Results</h4>
+            <p><strong>Test Statistic:</strong> ${statLine}</p>
             <p><strong>p-value:</strong> ${pVal.toFixed(4)}</p>
-            <p><strong>Conclusion:</strong> ${pVal < 0.05 ? "Significant difference" : "No significant difference"}</p>
+            <p><strong>Result:</strong> ${pVal < 0.05 ? "Statistically Significant" : "Not Statistically Significant"}</p>
         </div>
     `;
+    
+    // Auto-scroll to results
+    document.getElementById('finalResults').scrollIntoView({ behavior: 'smooth' });
 };
