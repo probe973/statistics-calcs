@@ -2,7 +2,6 @@
  * Global Statistics Library
  * Core math engine for assumptions and data cleaning.
  */
-
 const StatsLib = {
     
     // 1. DATA CLEANING
@@ -31,10 +30,10 @@ const StatsLib = {
         return Math.sqrt(this.getVariance(arr));
     },
 
-    // 3. SKEWNESS & SE SKEW (Evidence Board Logic)
+    // 3. SKEWNESS & SE SKEW
     getSkewness: function(arr) {
         const n = arr.length;
-        if (n < 3) return { score: "N/A", z: "N/A", isSignificant: false };
+        if (n < 3) return { skew: 0, z: 0, isSignificant: false };
 
         const mean = this.getMean(arr);
         const sd = this.getStdDev(arr);
@@ -47,8 +46,8 @@ const StatsLib = {
         const z = g1 / ses;
 
         return {
-            score: g1.toFixed(3),
-            z: z.toFixed(3),
+            skew: g1,
+            z: z,
             isSignificant: Math.abs(z) > 1.96
         };
     },
@@ -56,7 +55,7 @@ const StatsLib = {
     // 4. SHAPIRO-WILK TEST
     checkNormality: function(arr) {
         const n = arr.length;
-        if (n < 3 || n > 50) return { pValue: null, error: "N must be 3-50" };
+        if (n < 3 || n > 50) return { pValue: 0, W: 0, isNormal: false };
 
         const sorted = [...arr].sort((a, b) => a - b);
         const mean = this.getMean(sorted);
@@ -83,9 +82,18 @@ const StatsLib = {
         const pValue = 1 - this.normalCDF((y - m_y) / s_y);
 
         return {
-            pValue: pValue.toFixed(4),
+            W: w,
+            pValue: pValue,
             isNormal: pValue > 0.05
         };
+    },
+
+    // 5. F-TEST (EQUALITY OF VARIANCES)
+    getFProbability: function(f, df1, df2) {
+        const x = df2 / (df1 * f + df2);
+        const a = df2 / 2;
+        const b = df1 / 2;
+        return this.beta(x, a, b);
     },
 
     // MATH HELPERS
@@ -102,29 +110,8 @@ const StatsLib = {
         const q = p - 0.5, r = q * q;
         return (((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q /
                (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1);
-    }
-};
-
-// 5. F-TEST (EQUALITY OF VARIANCES)
-    getFProbability: function(f, df1, df2) {
-        // A robust approximation of the F-distribution CDF
-        // for determining equality of variances
-        const x = df2 / (df1 * f + df2);
-        const a = df2 / 2;
-        const b = df1 / 2;
-        
-        // Regularized Incomplete Beta Function Approximation
-        const beta = (x, a, b) => {
-            const bt = (x > 0 && x < 1) ? 
-                Math.exp(this.logGamma(a + b) - this.logGamma(a) - this.logGamma(b) + a * Math.log(x) + b * Math.log(1 - x)) : 0;
-            if (x < (a + 1) / (a + b + 2)) return bt * this.betacf(x, a, b) / a;
-            return 1 - bt * this.betacf(1 - x, b, a) / b;
-        };
-
-        return beta(x, a, b);
     },
 
-    // INTERNAL MATH HELPERS FOR F-DISTRIBUTION
     logGamma: function(z) {
         const c = [76.18009172947146, -86.50532032941677, 24.01409824083091, -1.231739572450155, 0.1208650973866179e-2, -0.5395239384953e-5];
         let x = z, y = z, tmp = x + 5.5;
@@ -132,6 +119,13 @@ const StatsLib = {
         let ser = 1.000000000190015;
         for (let i = 0; i < 6; i++) ser += c[i] / ++y;
         return -tmp + Math.log(2.5066282746310005 * ser / x);
+    },
+
+    beta: function(x, a, b) {
+        const bt = (x > 0 && x < 1) ? 
+            Math.exp(this.logGamma(a + b) - this.logGamma(a) - this.logGamma(b) + a * Math.log(x) + b * Math.log(1 - x)) : 0;
+        if (x < (a + 1) / (a + b + 2)) return bt * this.betacf(x, a, b) / a;
+        return 1 - bt * this.betacf(1 - x, b, a) / b;
     },
 
     betacf: function(x, a, b) {
@@ -159,3 +153,4 @@ const StatsLib = {
         }
         return h;
     }
+};
