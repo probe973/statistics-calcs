@@ -1,73 +1,74 @@
 document.getElementById('analyzeBtn').addEventListener('click', function() {
-    // 1. Data Retrieval
-    const groupA = StatsLib.parseData(document.getElementById('dataA').value);
-    const groupB = StatsLib.parseData(document.getElementById('dataB').value);
+    // 1. UNIVERSAL DATA GRAB
+    const inputElements = document.querySelectorAll('.data-input');
+    const dataGroups = Array.from(inputElements)
+        .map(el => StatsLib.parseData(el.value))
+        .filter(arr => arr.length >= 3); 
 
-    if (groupA.length < 3 || groupB.length < 3) {
-        alert("Please enter at least 3 numbers per group.");
+    if (dataGroups.length < 2) {
+        alert("Please provide data for at least two groups to compare.");
         return;
     }
 
-    // 2. Comprehensive Diagnostics
-    const skewA = StatsLib.getSkewness(groupA);
-    const skewB = StatsLib.getSkewness(groupB);
-    const swA = StatsLib.checkNormality(groupA);
-    const swB = StatsLib.checkNormality(groupB);
-    const varA = StatsLib.getVariance(groupA);
-    const varB = StatsLib.getVariance(groupB);
+    // 2. DYNAMIC TABLE GENERATION
+    let tableHtml = `<tr><th>Diagnostic Metric</th>`;
+    dataGroups.forEach((_, i) => {
+        tableHtml += `<th>Group ${String.fromCharCode(65 + i)}</th>`;
+    });
+    tableHtml += `</tr>`;
 
-    // F-Test Logic
-    const fRatio = varA > varB ? varA / varB : varB / varA;
-    const df1 = varA > varB ? groupA.length - 1 : groupB.length - 1;
-    const df2 = varA > varB ? groupB.length - 1 : groupA.length - 1;
-    const fPValue = StatsLib.getFProbability(fRatio, df1, df2);
-    
-    const variancesEqual = fPValue > 0.05;
-    const isNormal = swA.isNormal && swB.isNormal && !skewA.isSignificant && !skewB.isSignificant;
+    // Row: Z-Skew (Symmetry)
+    tableHtml += `<tr><td><strong>Z-Skew</strong> (Symmetry)</td>`;
+    dataGroups.forEach(group => {
+        const skew = StatsLib.getSkewness(group);
+        tableHtml += `<td>${skew.z}</td>`;
+    });
+    tableHtml += `</tr>`;
 
-    // 3. The Full Evidence Board Table
-    document.getElementById('evidenceBody').innerHTML = `
-        <tr>
-            <th>Diagnostic Metric</th>
-            <th>Group A Results</th>
-            <th>Group B Results</th>
-        </tr>
-        <tr>
-            <td><strong>Z-Skew</strong> (Symmetry)</td>
-            <td>${skewA.z}</td>
-            <td>${skewB.z}</td>
-        </tr>
-        <tr>
-            <td><strong>Shapiro-Wilk (p)</strong> (Normality)</td>
-            <td class="${swA.isNormal ? 'v-pass' : 'v-fail'}">${Number(swA.pValue).toFixed(4)}</td>
-            <td class="${swB.isNormal ? 'v-pass' : 'v-fail'}">${Number(swB.pValue).toFixed(4)}</td>
-        </tr>
-        <tr>
-            <td><strong>F-Test (p)</strong> (Equal Variance)</td>
-            <td colspan="2" style="text-align:center;" class="${variancesEqual ? 'v-pass' : 'v-fail'}">
-                F(${df1}, ${df2}) = ${fRatio.toFixed(2)}, p = ${fPValue.toFixed(4)}
-            </td>
-        </tr>
-    `;
+    // Row: Shapiro-Wilk (Normality)
+    let allNormal = true;
+    tableHtml += `<tr><td><strong>Shapiro-Wilk (p)</strong></td>`;
+    dataGroups.forEach(group => {
+        const sw = StatsLib.checkNormality(group);
+        if (!sw.isNormal) allNormal = false;
+        tableHtml += `<td class="${sw.isNormal ? 'v-pass' : 'v-fail'}">${Number(sw.pValue).toFixed(4)}</td>`;
+    });
+    tableHtml += `</tr>`;
 
-    // 4. Detailed Explanations
-    document.getElementById('consultantAdvice').innerHTML = `
-        <div class="logic-container" style="margin-top: 20px; padding: 15px; border: 1px solid #ddd; background: #f9f9f9;">
-            <h4>How to interpret these results:</h4>
+    document.getElementById('evidenceBody').innerHTML = tableHtml;
+
+    // 3. FULL EXPLANATIONS (Restored and Expanded)
+    let adviceHtml = `
+        <div class="explanation-box" style="padding: 20px; background: #f9f9f9; border: 1px solid #ddd; margin-top: 20px; border-radius: 8px;">
+            <h4>Diagnostic Evidence for ${dataGroups.length} Groups:</h4>
+            <p>We have checked the underlying "rules" of statistics to see which test is most accurate for your data:</p>
             <ul style="line-height: 1.6;">
-                <li><strong>Z-Skew:</strong> If the value is outside <strong>±1.96</strong>, your data is too "leaning" for a standard T-test.</li>
-                <li><strong>Shapiro-Wilk:</strong> A <strong>p > .05</strong> means we assume a Normal distribution.</li>
-                <li><strong>F-Test:</strong> A <strong>p > .05</strong> means the two groups have similar spreads (Homogeneity).</li>
+                <li><strong>Normality:</strong> ${allNormal ? 'All groups appear to follow a <strong>Normal (Bell Curve)</strong> distribution.' : 'One or more groups are <strong>Non-Normal</strong>. This suggests outliers or skewed data.'}</li>
+                <li><strong>Z-Skew:</strong> This measures the symmetry of your groups. Values between ±1.96 are considered ideal.</li>
             </ul>
-            <hr>
-            <p><strong>Recommendation:</strong> Use the <strong>${!isNormal ? "Mann-Whitney U" : (variancesEqual ? "Student's T-Test" : "Welch's T-Test")}</strong>.</p>
-        </div>
+            <hr style="margin: 15px 0;">
     `;
 
+    // 4. TAILORED RECOMMENDATION BASED ON GROUP COUNT
+    if (dataGroups.length === 2) {
+        adviceHtml += `<p><strong>Recommendation:</strong> Use the <strong>${allNormal ? "T-Test" : "Mann-Whitney U"}</strong>. See Step 2 below to execute.</p>`;
+    } else {
+        adviceHtml += `<p><strong>Recommendation:</strong> Use <strong>${allNormal ? "One-Way ANOVA" : "Kruskal-Wallis"}</strong> for comparing ${dataGroups.length} groups.</p>`;
+    }
+
+    adviceHtml += `</div>`;
+    document.getElementById('consultantAdvice').innerHTML = adviceHtml;
+
+    // 5. TRIGGER BUTTONS
     document.getElementById('evidenceBoard').style.display = 'block';
-    
-    // 5. TRIGGER THE BUTTONS (This makes Step 2 appear)
-    if (typeof window.renderExecutionButtons === 'function') {
-        window.renderExecutionButtons();
+
+    const testButtons = document.getElementById('testButtons');
+    if (dataGroups.length === 2) {
+        if (typeof window.renderExecutionButtons === 'function') {
+            window.renderExecutionButtons();
+        }
+    } else {
+        // Clear buttons if we have 3+ groups (prevents running a 2-group test on 3 groups)
+        testButtons.innerHTML = `<p style="color: #666; font-style: italic;">Note: Testing logic for 3+ groups is handled in the ANOVA module.</p>`;
     }
 });
