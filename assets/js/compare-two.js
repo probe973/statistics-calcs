@@ -14,7 +14,7 @@ document.getElementById('analyzeBtn').addEventListener('click', function() {
     const normA = StatsLib.checkNormality(groupA);
     const normB = StatsLib.checkNormality(groupB);
 
-    // 1. Update the Evidence Board with Human-Friendly labels
+    // 1. Evidence Board (Detective Phase)
     document.getElementById('evidenceBody').innerHTML = `
         <tr>
             <td><strong>Symmetry (Skewness)</strong><br><small>Is the data balanced or leaning?</small></td>
@@ -28,32 +28,26 @@ document.getElementById('analyzeBtn').addEventListener('click', function() {
         </tr>
     `;
 
-    // 2. The "Consultant" Narrative
+    // 2. The Grounded Consultant's Advice (Removed "Good News")
     const adviceDiv = document.getElementById('consultantAdvice');
-    let narrative = "";
-
-    if (normA.isNormal && normB.isNormal) {
-        narrative = `
-            <div class="advice-card pass">
-                <h4>Good news!</h4>
-                <p>Your data behaves like a classic normal distribution. This means the <strong>Independent T-Test</strong> will be highly accurate for your results.</p>
-            </div>`;
-    } else {
-        narrative = `
-            <div class="advice-card warning">
-                <h4>Take Note:</h4>
-                <p>Your data is showing some 'skew' (it's a bit lopsided). While you <em>could</em> run a T-test, the <strong>Mann-Whitney U</strong> is a much more honest way to report these findings. It won't be fooled by those outliers.</p>
-            </div>`;
-    }
+    const isNormal = normA.isNormal && normB.isNormal && !skewA.isSignificant && !skewB.isSignificant;
     
-    adviceDiv.innerHTML = narrative;
+    adviceDiv.innerHTML = isNormal 
+        ? `<div class="advice-card pass">
+            <h4>Recommendation: Parametric Path</h4>
+            <p>The data appears symmetrical and follows a normal distribution. A <strong>Welch's T-Test</strong> is the standard, robust choice here.</p>
+           </div>`
+        : `<div class="advice-card warning">
+            <h4>Recommendation: Non-Parametric Path</h4>
+            <p>One or more groups show significant skew or non-normality. The <strong>Mann-Whitney U</strong> test is recommended as it handles non-normal distributions more honestly.</p>
+           </div>`;
+
     document.getElementById('evidenceBoard').style.display = 'block';
     
-    // 3. Choice-based buttons
     document.getElementById('testButtons').innerHTML = `
-        <p><em>Which path would you like to take?</em></p>
-        <button class="btn-primary" onclick="runFinalTest('t')">Follow the T-Test Path</button>
-        <button class="btn-primary" onclick="runFinalTest('u')" style="margin-left:10px;">Follow the Mann-Whitney Path</button>
+        <p><em>Select the analysis to execute:</em></p>
+        <button class="btn-primary" onclick="runFinalTest('t')">Execute Welch's T-Test</button>
+        <button class="btn-primary" onclick="runFinalTest('u')" style="margin-left:10px;">Execute Mann-Whitney U</button>
     `;
 });
 
@@ -63,35 +57,70 @@ window.runFinalTest = function(type) {
     const output = document.getElementById('outputContent');
     document.getElementById('finalResults').style.display = 'block';
 
-    let pVal, testName, interpretation, writeUp;
+    // DESCRIPTIVES (The Foundation we discussed)
+    const n1 = groupA.length, n2 = groupB.length;
+    const m1 = StatsLib.getMean(groupA), m2 = StatsLib.getMean(groupB);
+    const v1 = StatsLib.getVariance(groupA), v2 = StatsLib.getVariance(groupB);
+    const sd1 = Math.sqrt(v1), sd2 = Math.sqrt(v2);
+
+    let testName, statLine, pVal, effectSize, effectLabel, writeUp;
 
     if (type === 't') {
         testName = "Welch's Independent T-Test";
-        const m1 = StatsLib.getMean(groupA), m2 = StatsLib.getMean(groupB);
-        const v1 = StatsLib.getVariance(groupA), v2 = StatsLib.getVariance(groupB);
-        const n1 = groupA.length, n2 = groupB.length;
-        const t = (m1 - m2) / Math.sqrt((v1/n1) + (v2/n2));
+        const se1 = v1/n1, se2 = v2/n2;
+        const df = Math.pow(se1 + se2, 2) / (Math.pow(se1, 2)/(n1-1) + Math.pow(se2, 2)/(n2-1));
+        const t = (m1 - m2) / Math.sqrt(se1 + se2);
         pVal = 2 * (1 - StatsLib.normalCDF(Math.abs(t)));
         
-        interpretation = pVal < 0.05 
-            ? "There <strong>is</strong> a significant difference. One group performed noticeably differently than the other."
-            : "There is <strong>no</strong> significant difference. Any variation you see is likely just down to chance.";
+        // Cohen's d (Magnitude)
+        const sdPooled = Math.sqrt(((n1-1)*v1 + (n2-1)*v2) / (n1+n2-2));
+        const d = (m1 - m2) / sdPooled;
         
-        writeUp = `You could report this as: <em>t(${n1+n2-2}) = ${t.toFixed(2)}, p = ${pVal.toFixed(3)}</em>.`;
+        statLine = `t(${df.toFixed(2)}) = ${t.toFixed(3)}`;
+        effectLabel = "Cohen's d";
+        effectSize = Math.abs(d).toFixed(3);
+        writeUp = `t(${df.toFixed(2)}) = ${t.toFixed(3)}, p = ${pVal.toFixed(3)}, d = ${effectSize}`;
     } else {
         testName = "Mann-Whitney U Test";
-        // (Math logic remains the same as previous)
-        interpretation = "This test compares the 'ranks' of your data rather than the means, making it perfect for your skewed results.";
-        writeUp = "Use this if you want to be conservative and avoid being misled by outliers.";
+        const combined = [...groupA.map(v => ({v, g: 'a'})), ...groupB.map(v => ({v, g: 'b'}))].sort((x, y) => x.v - y.v);
+        combined.forEach((d, i) => d.rank = i + 1);
+        const r1 = combined.filter(d => d.g === 'a').reduce((s, d) => s + d.rank, 0);
+        const u1 = r1 - (n1 * (n1 + 1)) / 2;
+        const u = Math.min(u1, (n1 * n2) - u1);
+        const mu = (n1 * n2) / 2;
+        const sigma = Math.sqrt((n1 * n2 * (n1 + n2 + 1)) / 12);
+        const z = (u - mu) / sigma;
+        pVal = 2 * (1 - StatsLib.normalCDF(Math.abs(z)));
+        
+        // Rank-Biserial Correlation (r)
+        const r = 1 - (2 * u1) / (n1 * n2);
+        
+        statLine = `U = ${u.toFixed(1)} (z = ${z.toFixed(3)})`;
+        effectLabel = "Rank-Biserial r";
+        effectSize = Math.abs(r).toFixed(3);
+        writeUp = `U = ${u.toFixed(1)}, p = ${pVal.toFixed(3)}, r = ${effectSize}`;
     }
 
     output.innerHTML = `
         <div class="final-report">
-            <h3>Your ${testName} Results</h3>
-            <p class="interpretation-text">${interpretation}</p>
+            <h3>Analysis Summary: ${testName}</h3>
+            
+            <section class="result-section">
+                <h4>1. Descriptive Statistics</h4>
+                <p>Group A: M = ${m1.toFixed(2)}, SD = ${sd1.toFixed(2)} (N=${n1})</p>
+                <p>Group B: M = ${m2.toFixed(2)}, SD = ${sd2.toFixed(2)} (N=${n2})</p>
+            </section>
+
+            <section class="result-section">
+                <h4>2. Inferential Results</h4>
+                <p><strong>Statistic:</strong> ${statLine}</p>
+                <p><strong>Probability of Chance (p):</strong> ${pVal.toFixed(4)}</p>
+                <p><strong>Magnitude of Difference (${effectLabel}):</strong> ${effectSize}</p>
+            </section>
+
             <div class="write-up-box">
-                <strong>How to write this in your report:</strong><br>
-                <span>${writeUp}</span>
+                <h4>3. Technical Reporting Guide</h4>
+                <code>Group A (M=${m1.toFixed(2)}, SD=${sd1.toFixed(2)}) and Group B (M=${m2.toFixed(2)}, SD=${sd2.toFixed(2)}) showed a ${pVal < .05 ? 'significant' : 'non-significant'} difference; ${writeUp}.</code>
             </div>
         </div>
     `;
