@@ -1,75 +1,84 @@
 document.getElementById('analyzeBtn').addEventListener('click', function() {
-    // 1. Grab the raw data from the textareas
     const rawA = document.getElementById('dataA').value;
     const rawB = document.getElementById('dataB').value;
     
-    // 2. Use the "Brain" to clean it
     const groupA = StatsLib.parseData(rawA);
     const groupB = StatsLib.parseData(rawB);
 
-    // 3. Basic validation
     if (groupA.length < 3 || groupB.length < 3) {
-        alert("Please enter at least 3 numbers for each group to perform an analysis.");
+        alert("Please enter at least 3 numbers for each group.");
         return;
     }
 
-    // 4. Run Assumption Checks using our StatsLib
+    // Assumptions from StatsLib
     const skewA = StatsLib.getSkewness(groupA);
     const skewB = StatsLib.getSkewness(groupB);
     const normA = StatsLib.checkNormality(groupA);
     const normB = StatsLib.checkNormality(groupB);
 
-    // 5. Update the Evidence Board Table
-    const tbody = document.getElementById('evidenceBody');
-    tbody.innerHTML = `
+    // Update the Table
+    document.getElementById('evidenceBody').innerHTML = `
         <tr>
-            <td><strong>Skewness Z-Score</strong><br><small>(Target: ±1.96)</small></td>
+            <td><strong>Skewness Z</strong></td>
             <td class="${skewA.isSignificant ? 'v-fail' : 'v-pass'}">${skewA.z}</td>
             <td class="${skewB.isSignificant ? 'v-fail' : 'v-pass'}">${skewB.z}</td>
         </tr>
         <tr>
-            <td><strong>Shapiro-Wilk Test</strong><br><small>(Normal if p > .05)</small></td>
-            <td class="${normA.isNormal ? 'v-pass' : 'v-fail'}">p = ${normA.pValue}</td>
-            <td class="${normB.isNormal ? 'v-pass' : 'v-fail'}">p = ${normB.pValue}</td>
+            <td><strong>Normality (p)</strong></td>
+            <td class="${normA.isNormal ? 'v-pass' : 'v-fail'}">${normA.pValue}</td>
+            <td class="${normB.isNormal ? 'v-pass' : 'v-fail'}">${normB.pValue}</td>
         </tr>
     `;
 
-    // 6. Show the board
-    document.getElementById('evidenceBoard').style.display = 'block';
-
-    // 7. Provide the "Consultant" Advice
+    // The Consultant Advice
     const adviceDiv = document.getElementById('consultantAdvice');
-    let adviceHtml = "<h4>Recommendation:</h4>";
+    const isNormal = normA.isNormal && normB.isNormal && !skewA.isSignificant && !skewB.isSignificant;
+    
+    adviceDiv.innerHTML = isNormal 
+        ? "<strong>Recommendation:</strong> Data looks Normal. Use the T-Test." 
+        : "<strong>Recommendation:</strong> Data is Skewed/Non-Normal. Use Mann-Whitney U.";
 
-    if (normA.isNormal && normB.isNormal && !skewA.isSignificant && !skewB.isSignificant) {
-        adviceHtml += "<p>Both groups appear normally distributed. The <strong>Independent T-test</strong> is appropriate.</p>";
-    } else {
-        adviceHtml += "<p>Data shows signs of non-normality. Consider the <strong>Mann-Whitney U</strong> test for more robust results.</p>";
-    }
-    adviceDiv.innerHTML = adviceHtml;
-
-    // 8. Create the Test Action Buttons
-    const btnRow = document.getElementById('testButtons');
-    btnRow.innerHTML = `
-        <button class="btn-secondary" onclick="runFinalTest('t')">Run Independent T-test</button>
-        <button class="btn-secondary" onclick="runFinalTest('u')">Run Mann-Whitney U</button>
+    // Show the board and the action buttons
+    document.getElementById('evidenceBoard').style.display = 'block';
+    document.getElementById('testButtons').innerHTML = `
+        <button class="btn-secondary" onclick="runFinalTest('t')">Execute T-Test</button>
+        <button class="btn-secondary" onclick="runFinalTest('u')">Execute Mann-Whitney U</button>
     `;
 });
 
-// Function to run the actual tests (called by the buttons above)
-window.runFinalTest = function(testType) {
+// THIS IS THE MISSING MATH THAT MAKES THE BUTTONS WORK
+window.runFinalTest = function(type) {
     const groupA = StatsLib.parseData(document.getElementById('dataA').value);
     const groupB = StatsLib.parseData(document.getElementById('dataB').value);
     const output = document.getElementById('outputContent');
-    let result;
-
-    if (testType === 't') {
-        result = StatsLib.runTTest(groupA, groupB);
-        output.innerHTML = `<strong>Test:</strong> ${result.name}<br><strong>t:</strong> ${result.stat} | <strong>df:</strong> ${result.df} | <strong>p:</strong> ${result.p}`;
-    } else {
-        result = StatsLib.runMannWhitney(groupA, groupB);
-        output.innerHTML = `<strong>Test:</strong> ${result.name}<br><strong>U:</strong> ${result.stat} | <strong>p:</strong> ${result.p}`;
-    }
-
     document.getElementById('finalResults').style.display = 'block';
+
+    if (type === 't') {
+        // Welch's T-Test Logic
+        const n1 = groupA.length, n2 = groupB.length;
+        const m1 = StatsLib.getMean(groupA), m2 = StatsLib.getMean(groupB);
+        const v1 = StatsLib.getVariance(groupA), v2 = StatsLib.getVariance(groupB);
+        const se = Math.sqrt((v1 / n1) + (v2 / n2));
+        const t = (m1 - m2) / se;
+        const df = Math.pow((v1/n1)+(v2/n2), 2) / ((Math.pow(v1/n1, 2)/(n1-1)) + (Math.pow(v2/n2, 2)/(n2-1)));
+        const p = 2 * (1 - StatsLib.normalCDF(Math.abs(t)));
+
+        output.innerHTML = `<h4>Welch's T-Test Results</h4>
+                            <p><strong>t:</strong> ${t.toFixed(3)} | <strong>df:</strong> ${df.toFixed(2)}</p>
+                            <p><strong>p-value:</strong> ${p.toFixed(4)}</p>`;
+    } else {
+        // Mann-Whitney U Logic
+        const n1 = groupA.length, n2 = groupB.length;
+        const combined = [...groupA.map(v => ({v, g: 'a'})), ...groupB.map(v => ({v, g: 'b'}))].sort((x, y) => x.v - y.v);
+        combined.forEach((d, i) => d.rank = i + 1);
+        const r1 = combined.filter(d => d.g === 'a').reduce((s, d) => s + d.rank, 0);
+        const u1 = r1 - (n1 * (n1 + 1)) / 2;
+        const u = Math.min(u1, (n1 * n2) - u1);
+        const mu = (n1 * n2) / 2;
+        const sigma = Math.sqrt((n1 * n2 * (n1 + n2 + 1)) / 12);
+        const p = 2 * (1 - StatsLib.normalCDF(Math.abs((u - mu) / sigma)));
+
+        output.innerHTML = `<h4>Mann-Whitney U Results</h4>
+                            <p><strong>U:</strong> ${u} | <strong>p-value:</strong> ${p.toFixed(4)}</p>`;
+    }
 };
