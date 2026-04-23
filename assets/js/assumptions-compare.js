@@ -1,52 +1,46 @@
 document.getElementById('analyzeBtn').addEventListener('click', function() {
-    const groupA = StatsLib.parseData(document.getElementById('dataA').value);
-    const groupB = StatsLib.parseData(document.getElementById('dataB').value);
+    var groupA = StatsLib.parseData(document.getElementById('dataA').value);
+    var groupB = StatsLib.parseData(document.getElementById('dataB').value);
 
     if (groupA.length < 3 || groupB.length < 3) {
         alert("Diagnostics require at least 3 numbers per group.");
         return;
     }
 
-    const skewA = StatsLib.getSkewness(groupA);
-    const skewB = StatsLib.getSkewness(groupB);
-    const swA = StatsLib.checkNormality(groupA);
-    const swB = StatsLib.checkNormality(groupB);
-    const varA = StatsLib.getVariance(groupA);
-    const varB = StatsLib.getVariance(groupB);
-    const fRatio = varA > varB ? varA / varB : varB / varA;
-    const fP = StatsLib.getFProbability(fRatio, groupA.length-1, groupB.length-1);
+    var skewA = StatsLib.getSkewness(groupA);
+    var skewB = StatsLib.getSkewness(groupB);
+    var swA = StatsLib.checkNormality(groupA);
+    var swB = StatsLib.checkNormality(groupB);
+    var varA = StatsLib.getVariance(groupA);
+    var varB = StatsLib.getVariance(groupB);
+    
+    // F-Test for Variance
+    var fRatio = varA > varB ? varA / varB : varB / varA;
+    var fP = StatsLib.getFProbability(fRatio, groupA.length-1, groupB.length-1);
 
-    // Populate Table
-    document.getElementById('evidenceBody').innerHTML = `
-        <tr><td><strong>Z-Skew</strong> (Symmetry)</td><td>${skewA.z}</td><td>${skewB.z}</td></tr>
-        <tr><td><strong>Normality</strong> (Shapiro-Wilk p)</td><td>${Number(swA.pValue).toFixed(4)}</td><td>${Number(swB.pValue).toFixed(4)}</td></tr>
-        <tr><td><strong>Variance</strong> (F-test p)</td><td colspan="2" style="text-align:center;">p = ${fP.toFixed(4)}</td></tr>
-    `;
+    // 1. Fill Table (Using standard strings)
+    var tableRows = "<tr><td><strong>Z-Skew</strong> (Symmetry)</td><td>" + skewA.z + "</td><td>" + skewB.z + "</td></tr>";
+    tableRows += "<tr><td><strong>Normality</strong> (p)</td><td>" + Number(swA.pValue).toFixed(4) + "</td><td>" + Number(swB.pValue).toFixed(4) + "</td></tr>";
+    tableRows += "<tr><td><strong>Variance</strong> (p)</td><td colspan='2' style='text-align:center;'>p = " + fP.toFixed(4) + "</td></tr>";
+    document.getElementById('evidenceBody').innerHTML = tableRows;
 
-    // RESTORED: Deep Explanations
-    let adviceHtml = `
-        <div class="advice-content">
-            <h4><i class="fas fa-microscope"></i> Diagnostic Interpretation</h4>
-            <p><strong>Symmetry:</strong> ${Math.abs(skewA.z) < 1.96 && Math.abs(skewB.z) < 1.96 ? 
-                "Both groups are balanced. The mean is a reliable center point." : 
-                "Significant skew detected. The distribution is lopsided, which may bias a T-test."}</p>
-            
-            <p><strong>Normality:</strong> ${swA.isNormal && swB.isNormal ? 
-                "Data follows a Normal (Bell Curve) distribution. Parametric testing is appropriate." : 
-                "Non-normality detected. The 'Mann-Whitney U' test is recommended as it doesn't assume a bell curve."}</p>
-            
-            <p><strong>Variance:</strong> ${fP > 0.05 ? 
-                "Groups have 'Homogeneity of Variance' (they spread similarly)." : 
-                "Unequal variance detected. If running a T-test, <strong>Welch's T</strong> is mandatory to avoid false positives."}</p>
-            
-            <div class="recommendation-highlight" style="background: #e7f3ff; padding: 15px; border-left: 5px solid #2196F3; margin-top: 15px;">
-                <strong>Strategist's Choice:</strong> Use the <strong>${!swA.isNormal || !swB.isNormal ? 'Mann-Whitney U' : (fP > 0.05 ? "Student's T-Test" : "Welch's T-Test")}</strong>.
-            </div>
-        </div>
-    `;
+    // 2. Explanations (The missing content)
+    var isNormal = (swA.isNormal && swB.isNormal);
+    var isSymmetrical = (Math.abs(skewA.z) < 1.96 && Math.abs(skewB.z) < 1.96);
+    var isVarEqual = (fP > 0.05);
 
-    document.getElementById('consultantAdvice').innerHTML = adviceHtml;
+    var advice = "<h3>Diagnostic Report</h3>";
+    advice += "<p><strong>Symmetry:</strong> " + (isSymmetrical ? "Both groups are symmetrical." : "One or more groups are skewed, which can bias the results.") + "</p>";
+    advice += "<p><strong>Normality:</strong> " + (isNormal ? "Data fits the Bell Curve (Normal)." : "Data is Non-Normal. Consider the Mann-Whitney U test.") + "</p>";
+    advice += "<p><strong>Variance:</strong> " + (isVarEqual ? "Groups spread equally." : "Unequal spread detected; use Welch's T-test.") + "</p>";
+    
+    var rec = !isNormal ? "Mann-Whitney U" : (isVarEqual ? "Student's T-test" : "Welch's T-test");
+    advice += "<div style='background:#e7f3ff; padding:10px; border-left:5px solid #2196F3;'><strong>Recommendation:</strong> Use the " + rec + "</div>";
+
+    document.getElementById('consultantAdvice').innerHTML = advice;
     document.getElementById('evidenceBoard').style.display = 'block';
 
-    if (typeof window.renderExecutionButtons === 'function') window.renderExecutionButtons();
+    if (typeof window.renderExecutionButtons === 'function') {
+        window.renderExecutionButtons();
+    }
 });
