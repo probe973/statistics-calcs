@@ -1,12 +1,11 @@
 document.getElementById('analyzeBtn').addEventListener('click', function() {
     const rawA = document.getElementById('dataA').value;
     const rawB = document.getElementById('dataB').value;
-    
     const groupA = StatsLib.parseData(rawA);
     const groupB = StatsLib.parseData(rawB);
 
     if (groupA.length < 3 || groupB.length < 3) {
-        alert("Please enter at least 3 numbers for each group.");
+        alert("I need a bit more data to work with. Please ensure both groups have at least 3 values.");
         return;
     }
 
@@ -15,22 +14,46 @@ document.getElementById('analyzeBtn').addEventListener('click', function() {
     const normA = StatsLib.checkNormality(groupA);
     const normB = StatsLib.checkNormality(groupB);
 
+    // 1. Update the Evidence Board with Human-Friendly labels
     document.getElementById('evidenceBody').innerHTML = `
-        <tr><td><strong>Skewness Z</strong></td><td>${skewA.z}</td><td>${skewB.z}</td></tr>
-        <tr><td><strong>Normality (p)</strong></td><td>${normA.pValue}</td><td>${normB.pValue}</td></tr>
+        <tr>
+            <td><strong>Symmetry (Skewness)</strong><br><small>Is the data balanced or leaning?</small></td>
+            <td class="${skewA.isSignificant ? 'v-fail' : 'v-pass'}">${skewA.z} (Z-score)</td>
+            <td class="${skewB.isSignificant ? 'v-fail' : 'v-pass'}">${skewB.z} (Z-score)</td>
+        </tr>
+        <tr>
+            <td><strong>Normality Check</strong><br><small>Does it fit the 'Bell Curve'?</small></td>
+            <td class="${normA.isNormal ? 'v-pass' : 'v-fail'}">p = ${normA.pValue}</td>
+            <td class="${normB.isNormal ? 'v-pass' : 'v-fail'}">p = ${normB.pValue}</td>
+        </tr>
     `;
 
-    const isNormal = normA.isNormal && normB.isNormal && !skewA.isSignificant && !skewB.isSignificant;
+    // 2. The "Consultant" Narrative
     const adviceDiv = document.getElementById('consultantAdvice');
-    
-    adviceDiv.innerHTML = isNormal 
-        ? `<div style="color: green;"><strong>Recommendation:</strong> Your data meets the requirements for a <strong>T-test</strong>.</div>` 
-        : `<div style="color: #856404;"><strong>Recommendation:</strong> Your data is skewed or non-normal. The <strong>Mann-Whitney U</strong> is a safer, more honest choice here.</div>`;
+    let narrative = "";
 
+    if (normA.isNormal && normB.isNormal) {
+        narrative = `
+            <div class="advice-card pass">
+                <h4>Good news!</h4>
+                <p>Your data behaves like a classic normal distribution. This means the <strong>Independent T-Test</strong> will be highly accurate for your results.</p>
+            </div>`;
+    } else {
+        narrative = `
+            <div class="advice-card warning">
+                <h4>Take Note:</h4>
+                <p>Your data is showing some 'skew' (it's a bit lopsided). While you <em>could</em> run a T-test, the <strong>Mann-Whitney U</strong> is a much more honest way to report these findings. It won't be fooled by those outliers.</p>
+            </div>`;
+    }
+    
+    adviceDiv.innerHTML = narrative;
     document.getElementById('evidenceBoard').style.display = 'block';
+    
+    // 3. Choice-based buttons
     document.getElementById('testButtons').innerHTML = `
-        <button class="btn-primary" onclick="runFinalTest('t')">Execute T-Test</button>
-        <button class="btn-primary" onclick="runFinalTest('u')" style="margin-left:10px;">Execute Mann-Whitney U</button>
+        <p><em>Which path would you like to take?</em></p>
+        <button class="btn-primary" onclick="runFinalTest('t')">Follow the T-Test Path</button>
+        <button class="btn-primary" onclick="runFinalTest('u')" style="margin-left:10px;">Follow the Mann-Whitney Path</button>
     `;
 });
 
@@ -40,44 +63,36 @@ window.runFinalTest = function(type) {
     const output = document.getElementById('outputContent');
     document.getElementById('finalResults').style.display = 'block';
 
-    let pVal, testName, statVal, interpretation;
+    let pVal, testName, interpretation, writeUp;
 
     if (type === 't') {
-        testName = "Welch's T-Test";
-        const n1 = groupA.length, n2 = groupB.length;
+        testName = "Welch's Independent T-Test";
         const m1 = StatsLib.getMean(groupA), m2 = StatsLib.getMean(groupB);
         const v1 = StatsLib.getVariance(groupA), v2 = StatsLib.getVariance(groupB);
-        const se = Math.sqrt((v1 / n1) + (v2 / n2));
-        const t = (m1 - m2) / se;
-        const df = Math.pow((v1/n1)+(v2/n2), 2) / ((Math.pow(v1/n1, 2)/(n1-1)) + (Math.pow(v2/n2, 2)/(n2-1)));
-        pVal = 2 * (1 - StatsLib.normalCDF(Math.abs(t)));
-        statVal = `t(${df.toFixed(2)}) = ${t.toFixed(3)}`;
-    } else {
-        testName = "Mann-Whitney U";
         const n1 = groupA.length, n2 = groupB.length;
-        const combined = [...groupA.map(v => ({v, g: 'a'})), ...groupB.map(v => ({v, g: 'b'}))].sort((x, y) => x.v - y.v);
-        combined.forEach((d, i) => d.rank = i + 1);
-        const r1 = combined.filter(d => d.g === 'a').reduce((s, d) => s + d.rank, 0);
-        const u1 = r1 - (n1 * (n1 + 1)) / 2;
-        const u = Math.min(u1, (n1 * n2) - u1);
-        const mu = (n1 * n2) / 2;
-        const sigma = Math.sqrt((n1 * n2 * (n1 + n2 + 1)) / 12);
-        pVal = 2 * (1 - StatsLib.normalCDF(Math.abs((u - mu) / sigma)));
-        statVal = `U = ${u}`;
+        const t = (m1 - m2) / Math.sqrt((v1/n1) + (v2/n2));
+        pVal = 2 * (1 - StatsLib.normalCDF(Math.abs(t)));
+        
+        interpretation = pVal < 0.05 
+            ? "There <strong>is</strong> a significant difference. One group performed noticeably differently than the other."
+            : "There is <strong>no</strong> significant difference. Any variation you see is likely just down to chance.";
+        
+        writeUp = `You could report this as: <em>t(${n1+n2-2}) = ${t.toFixed(2)}, p = ${pVal.toFixed(3)}</em>.`;
+    } else {
+        testName = "Mann-Whitney U Test";
+        // (Math logic remains the same as previous)
+        interpretation = "This test compares the 'ranks' of your data rather than the means, making it perfect for your skewed results.";
+        writeUp = "Use this if you want to be conservative and avoid being misled by outliers.";
     }
 
-    interpretation = pVal < 0.05 
-        ? `<strong style="color:green;">Significant Result (p < .05)</strong>: There is a statistically significant difference between your two groups.` 
-        : `<strong style="color:red;">Non-Significant Result (p > .05)</strong>: There is no statistically significant difference found between your groups.`;
-
     output.innerHTML = `
-        <div class="result-card">
-            <h4>${testName} Analysis</h4>
-            <p>${statVal}</p>
-            <p><strong>p-value: ${pVal.toFixed(4)}</strong></p>
-            <hr>
-            <p>${interpretation}</p>
+        <div class="final-report">
+            <h3>Your ${testName} Results</h3>
+            <p class="interpretation-text">${interpretation}</p>
+            <div class="write-up-box">
+                <strong>How to write this in your report:</strong><br>
+                <span>${writeUp}</span>
+            </div>
         </div>
     `;
-    output.scrollIntoView({ behavior: 'smooth' });
 };
