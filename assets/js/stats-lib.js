@@ -104,3 +104,58 @@ const StatsLib = {
                (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1);
     }
 };
+
+// 5. F-TEST (EQUALITY OF VARIANCES)
+    getFProbability: function(f, df1, df2) {
+        // A robust approximation of the F-distribution CDF
+        // for determining equality of variances
+        const x = df2 / (df1 * f + df2);
+        const a = df2 / 2;
+        const b = df1 / 2;
+        
+        // Regularized Incomplete Beta Function Approximation
+        const beta = (x, a, b) => {
+            const bt = (x > 0 && x < 1) ? 
+                Math.exp(this.logGamma(a + b) - this.logGamma(a) - this.logGamma(b) + a * Math.log(x) + b * Math.log(1 - x)) : 0;
+            if (x < (a + 1) / (a + b + 2)) return bt * this.betacf(x, a, b) / a;
+            return 1 - bt * this.betacf(1 - x, b, a) / b;
+        };
+
+        return beta(x, a, b);
+    },
+
+    // INTERNAL MATH HELPERS FOR F-DISTRIBUTION
+    logGamma: function(z) {
+        const c = [76.18009172947146, -86.50532032941677, 24.01409824083091, -1.231739572450155, 0.1208650973866179e-2, -0.5395239384953e-5];
+        let x = z, y = z, tmp = x + 5.5;
+        tmp -= (x + 0.5) * Math.log(tmp);
+        let ser = 1.000000000190015;
+        for (let i = 0; i < 6; i++) ser += c[i] / ++y;
+        return -tmp + Math.log(2.5066282746310005 * ser / x);
+    },
+
+    betacf: function(x, a, b) {
+        const maxIter = 100, eps = 3e-7;
+        let qab = a + b, qap = a + 1, qam = a - 1, c = 1, d = 1 - qab * x / qap;
+        if (Math.abs(d) < 1e-30) d = 1e-30;
+        d = 1 / d;
+        let h = d;
+        for (let m = 1; m <= maxIter; m++) {
+            let m2 = 2 * m, aa = m * (b - m) * x / ((qam + m2) * (a + m2));
+            d = 1 + aa * d;
+            if (Math.abs(d) < 1e-30) d = 1e-30;
+            c = 1 + aa / c;
+            if (Math.abs(c) < 1e-30) c = 1e-30;
+            d = 1 / d;
+            h *= d * c;
+            aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2));
+            d = 1 + aa * d;
+            if (Math.abs(d) < 1e-30) d = 1e-30;
+            c = 1 + aa / c;
+            if (Math.abs(c) < 1e-30) c = 1e-30;
+            d = 1 / d;
+            h *= d * c;
+            if (Math.abs(d * c - 1) < eps) break;
+        }
+        return h;
+    }
