@@ -1,74 +1,52 @@
 document.getElementById('analyzeBtn').addEventListener('click', function() {
-    // 1. UNIVERSAL DATA GRAB
-    const inputElements = document.querySelectorAll('.data-input');
-    const dataGroups = Array.from(inputElements)
-        .map(el => StatsLib.parseData(el.value))
-        .filter(arr => arr.length >= 3); 
+    const groupA = StatsLib.parseData(document.getElementById('dataA').value);
+    const groupB = StatsLib.parseData(document.getElementById('dataB').value);
 
-    if (dataGroups.length < 2) {
-        alert("Please provide data for at least two groups to compare.");
+    if (groupA.length < 3 || groupB.length < 3) {
+        alert("Diagnostics require at least 3 numbers per group.");
         return;
     }
 
-    // 2. DYNAMIC TABLE GENERATION
-    let tableHtml = `<tr><th>Diagnostic Metric</th>`;
-    dataGroups.forEach((_, i) => {
-        tableHtml += `<th>Group ${String.fromCharCode(65 + i)}</th>`;
-    });
-    tableHtml += `</tr>`;
+    const skewA = StatsLib.getSkewness(groupA);
+    const skewB = StatsLib.getSkewness(groupB);
+    const swA = StatsLib.checkNormality(groupA);
+    const swB = StatsLib.checkNormality(groupB);
+    const varA = StatsLib.getVariance(groupA);
+    const varB = StatsLib.getVariance(groupB);
+    const fRatio = varA > varB ? varA / varB : varB / varA;
+    const fP = StatsLib.getFProbability(fRatio, groupA.length-1, groupB.length-1);
 
-    // Row: Z-Skew (Symmetry)
-    tableHtml += `<tr><td><strong>Z-Skew</strong> (Symmetry)</td>`;
-    dataGroups.forEach(group => {
-        const skew = StatsLib.getSkewness(group);
-        tableHtml += `<td>${skew.z}</td>`;
-    });
-    tableHtml += `</tr>`;
-
-    // Row: Shapiro-Wilk (Normality)
-    let allNormal = true;
-    tableHtml += `<tr><td><strong>Shapiro-Wilk (p)</strong></td>`;
-    dataGroups.forEach(group => {
-        const sw = StatsLib.checkNormality(group);
-        if (!sw.isNormal) allNormal = false;
-        tableHtml += `<td class="${sw.isNormal ? 'v-pass' : 'v-fail'}">${Number(sw.pValue).toFixed(4)}</td>`;
-    });
-    tableHtml += `</tr>`;
-
-    document.getElementById('evidenceBody').innerHTML = tableHtml;
-
-    // 3. FULL EXPLANATIONS (Restored and Expanded)
-    let adviceHtml = `
-        <div class="explanation-box" style="padding: 20px; background: #f9f9f9; border: 1px solid #ddd; margin-top: 20px; border-radius: 8px;">
-            <h4>Diagnostic Evidence for ${dataGroups.length} Groups:</h4>
-            <p>We have checked the underlying "rules" of statistics to see which test is most accurate for your data:</p>
-            <ul style="line-height: 1.6;">
-                <li><strong>Normality:</strong> ${allNormal ? 'All groups appear to follow a <strong>Normal (Bell Curve)</strong> distribution.' : 'One or more groups are <strong>Non-Normal</strong>. This suggests outliers or skewed data.'}</li>
-                <li><strong>Z-Skew:</strong> This measures the symmetry of your groups. Values between ±1.96 are considered ideal.</li>
-            </ul>
-            <hr style="margin: 15px 0;">
+    // Populate Table
+    document.getElementById('evidenceBody').innerHTML = `
+        <tr><td><strong>Z-Skew</strong> (Symmetry)</td><td>${skewA.z}</td><td>${skewB.z}</td></tr>
+        <tr><td><strong>Normality</strong> (Shapiro-Wilk p)</td><td>${Number(swA.pValue).toFixed(4)}</td><td>${Number(swB.pValue).toFixed(4)}</td></tr>
+        <tr><td><strong>Variance</strong> (F-test p)</td><td colspan="2" style="text-align:center;">p = ${fP.toFixed(4)}</td></tr>
     `;
 
-    // 4. TAILORED RECOMMENDATION BASED ON GROUP COUNT
-    if (dataGroups.length === 2) {
-        adviceHtml += `<p><strong>Recommendation:</strong> Use the <strong>${allNormal ? "T-Test" : "Mann-Whitney U"}</strong>. See Step 2 below to execute.</p>`;
-    } else {
-        adviceHtml += `<p><strong>Recommendation:</strong> Use <strong>${allNormal ? "One-Way ANOVA" : "Kruskal-Wallis"}</strong> for comparing ${dataGroups.length} groups.</p>`;
-    }
+    // RESTORED: Deep Explanations
+    let adviceHtml = `
+        <div class="advice-content">
+            <h4><i class="fas fa-microscope"></i> Diagnostic Interpretation</h4>
+            <p><strong>Symmetry:</strong> ${Math.abs(skewA.z) < 1.96 && Math.abs(skewB.z) < 1.96 ? 
+                "Both groups are balanced. The mean is a reliable center point." : 
+                "Significant skew detected. The distribution is lopsided, which may bias a T-test."}</p>
+            
+            <p><strong>Normality:</strong> ${swA.isNormal && swB.isNormal ? 
+                "Data follows a Normal (Bell Curve) distribution. Parametric testing is appropriate." : 
+                "Non-normality detected. The 'Mann-Whitney U' test is recommended as it doesn't assume a bell curve."}</p>
+            
+            <p><strong>Variance:</strong> ${fP > 0.05 ? 
+                "Groups have 'Homogeneity of Variance' (they spread similarly)." : 
+                "Unequal variance detected. If running a T-test, <strong>Welch's T</strong> is mandatory to avoid false positives."}</p>
+            
+            <div class="recommendation-highlight" style="background: #e7f3ff; padding: 15px; border-left: 5px solid #2196F3; margin-top: 15px;">
+                <strong>Strategist's Choice:</strong> Use the <strong>${!swA.isNormal || !swB.isNormal ? 'Mann-Whitney U' : (fP > 0.05 ? "Student's T-Test" : "Welch's T-Test")}</strong>.
+            </div>
+        </div>
+    `;
 
-    adviceHtml += `</div>`;
     document.getElementById('consultantAdvice').innerHTML = adviceHtml;
-
-    // 5. TRIGGER BUTTONS
     document.getElementById('evidenceBoard').style.display = 'block';
 
-    const testButtons = document.getElementById('testButtons');
-    if (dataGroups.length === 2) {
-        if (typeof window.renderExecutionButtons === 'function') {
-            window.renderExecutionButtons();
-        }
-    } else {
-        // Clear buttons if we have 3+ groups (prevents running a 2-group test on 3 groups)
-        testButtons.innerHTML = `<p style="color: #666; font-style: italic;">Note: Testing logic for 3+ groups is handled in the ANOVA module.</p>`;
-    }
+    if (typeof window.renderExecutionButtons === 'function') window.renderExecutionButtons();
 });
