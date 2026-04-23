@@ -9,21 +9,19 @@
 <body>
     <a href="#main-content" class="skip-link">Skip to main content</a>
 
-    <header role="banner">
+    <header>
         <div class="container">
             <h1>{{ site.title }}</h1>
             <p>{{ site.description }}</p>
         </div>
     </header>
 
-    <main id="main-content" class="container" role="main">
+    <main id="main-content" class="container">
         {{ content }}
     </main>
 
-    <footer role="contentinfo">
-        <div class="container">
-            <p>&copy; {{ "now" | date: "%Y" }} {{ site.author }}</p>
-        </div>
+    <footer>
+        <p>Built with <a href="https://jekyllrb.com/" target="_blank" rel="noopener noreferrer">Jekyll</a> and hosted on <a href="https://pages.github.com/" target="_blank" rel="noopener noreferrer">GitHub Pages</a>.</p>
     </footer>
 
     <script src="{{ '/assets/js/scripts.js' | relative_url }}"></script>
