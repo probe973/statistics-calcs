@@ -3,36 +3,83 @@ layout: default
 title: Home
 ---
 
-<h2>1. Paste Your Data</h2>
-<p>Paste tab-separated data (e.g., from Excel or Google Sheets).</p>
+<section aria-labelledby="input-heading" style="margin-bottom: 40px;">
+    <h2 id="input-heading">1. Paste Your Data</h2>
+    <p>Paste tab-separated data from Excel or Google Sheets below.</p>
 
-<textarea id="dataInput" rows="10" style="width:100%; font-family: monospace;"></textarea>
+    <textarea id="dataInput" 
+              aria-label="Tab-separated data input"
+              rows="10" 
+              style="width:100%; font-family: monospace; padding: 10px; border: 1px solid #767676; border-radius: 4px;"></textarea>
 
-<div style="margin: 15px 0;">
-    <input type="checkbox" id="hasHeaders" checked>
-    <label for="hasHeaders">First row contains headers</label>
-</div>
+    <div style="margin: 15px 0; display: flex; align-items: center;">
+        <input type="checkbox" id="hasHeaders" checked style="width: 20px; height: 20px; margin-right: 10px;">
+        <label for="hasHeaders">First row contains headers</label>
+    </div>
 
-<button id="processBtn">Process Data</button>
+    <button id="processBtn" class="standard-button">Process Data</button>
+</section>
 
-<hr>
+<section id="variableSettings" aria-labelledby="config-heading" style="display:none; margin-bottom: 40px;">
+    <h2 id="config-heading">2. Confirm Variable Details</h2>
+    <p>Adjust names and data types to ensure accurate analysis.</p>
+    
+    <div style="overflow-x: auto;">
+        <table id="variableTable" style="width:100%; border-collapse: collapse; margin-bottom: 20px;">
+            <thead>
+                <tr style="text-align: left; background-color: #f4f4f4;">
+                    <th style="padding: 12px; border: 1px solid #ccc;">Source Column</th>
+                    <th style="padding: 12px; border: 1px solid #ccc;">Variable Name</th>
+                    <th style="padding: 12px; border: 1px solid #ccc;">Data Type</th>
+                </tr>
+            </thead>
+            <tbody id="variableBody"></tbody>
+        </table>
+    </div>
+    
+    <button id="confirmBtn" class="standard-button btn-confirm">Confirm & Review Data</button>
+</section>
 
-<div id="variableSettings" style="display:none;">
-    <h3>2. Confirm Variable Details</h3>
-    <p>Adjust names and data types if needed.</p>
-    <table id="variableTable" style="width:100%; border-collapse: collapse;">
-        <thead>
-            <tr style="text-align: left; border-bottom: 2px solid #ccc;">
-                <th>Original Data</th>
-                <th>Variable Name</th>
-                <th>Data Type</th>
-            </tr>
-        </thead>
-        <tbody id="variableBody">
-            </tbody>
-    </table>
-    <br>
-    <button id="confirmBtn" style="background-color: #28a745; color: white; padding: 10px 20px;">Confirm & Ready for Analysis</button>
-</div>
+<section id="analysisSection" aria-labelledby="analysis-heading" style="display:none; margin-bottom: 40px;">
+    <h2 id="analysis-heading">3. Data Review & Analysis</h2>
+    
+    <div id="tableWrapper" style="max-height: 300px; overflow-y: auto; border: 1px solid #ccc; margin-bottom: 20px; border-radius: 4px;">
+        <table id="finalDataTable" style="width:100%; border-collapse: collapse;">
+            <thead id="finalTableHead" style="position: sticky; top: 0; background: #eee;"></thead>
+            <tbody id="finalTableBody"></tbody>
+        </table>
+    </div>
+
+    <h3>Available Analyses</h3>
+    <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+        <button id="btnDescriptive" class="standard-button">Descriptive Statistics</button>
+    </div>
+</section>
+
+<style>
+    /* Consistency and Accessibility Styles */
+    .standard-button {
+        height: 44px; /* Minimum touch target size for accessibility */
+        padding: 0 24px;
+        font-size: 16px;
+        cursor: pointer;
+        border: 1px solid #005a9c;
+        border-radius: 4px;
+        background-color: #005a9c;
+        color: white;
+        transition: background-color 0.2s;
+    }
+    .standard-button:hover, .standard-button:focus {
+        background-color: #003f6b;
+        outline: 3px solid #ffbf47; /* High contrast focus indicator */
+    }
+    .btn-confirm {
+        background-color: #2e7d32;
+        border-color: #1b5e20;
+    }
+    .btn-confirm:hover {
+        background-color: #1b5e20;
+    }
+</style>
 
 <script src="{{ '/assets/js/data-handler.js' | relative_url }}"></script>
