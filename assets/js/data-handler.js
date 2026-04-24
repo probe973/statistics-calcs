@@ -1,7 +1,12 @@
 document.addEventListener('DOMContentLoaded', function() {
+    // Elements
     const processBtn = document.getElementById('processBtn');
-    const variableSettings = document.getElementById('variableSettings');
-    const variableBody = document.getElementById('variableBody');
+    const confirmBtn = document.getElementById('confirmBtn');
+    const varSettings = document.getElementById('variableSettings');
+    const varBody = document.getElementById('variableBody');
+    const analysisSection = document.getElementById('analysisSection');
+    
+    let processedRows = [];
 
     processBtn.addEventListener('click', function() {
         const rawData = document.getElementById('dataInput').value.trim();
@@ -9,48 +14,56 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (!rawData) return alert("Please paste data first.");
 
-        const rows = rawData.split('\n').map(r => r.split('\t'));
-        const firstRow = rows[0];
-        const secondRow = rows[1] || []; // Used to guess types
+        processedRows = rawData.split('\n').map(r => r.split('\t'));
+        const firstRow = processedRows[0];
+        const sampleRow = processedRows[1] || firstRow;
 
-        variableBody.innerHTML = ''; // Clear previous
+        varBody.innerHTML = '';
         
         firstRow.forEach((colValue, index) => {
-            // 1. Determine Name
             let varName = hasHeaders ? colValue.trim() : String.fromCharCode(65 + index);
             
-            // 2. Guess Type (Check the second row or first row if no headers)
-            let sampleValue = hasHeaders ? (secondRow[index] || "") : colValue;
-            let guessedType = "string";
-            if (!isNaN(sampleValue) && sampleValue.trim() !== "") {
-                guessedType = sampleValue.includes('.') ? "decimal" : "integer";
-            }
+            // Basic type guessing
+            let val = hasHeaders ? (sampleRow[index] || "") : colValue;
+            let type = (!isNaN(val) && val.trim() !== "") ? (val.includes('.') ? "decimal" : "integer") : "string";
 
-            // 3. Build the Row
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td style="padding: 10px; border-bottom: 1px solid #eee; color: #666;">
-                    <em>${hasHeaders ? 'Header found' : 'Column ' + (index + 1)}</em>
+                <td style="padding: 10px; border: 1px solid #ccc;">Col ${index + 1}</td>
+                <td style="padding: 10px; border: 1px solid #ccc;">
+                    <input type="text" class="var-name-input" value="${varName}" aria-label="Name for Column ${index + 1}">
                 </td>
-                <td style="padding: 10px; border-bottom: 1px solid #eee;">
-                    <input type="text" class="var-name" value="${varName}" data-col="${index}">
-                </td>
-                <td style="padding: 10px; border-bottom: 1px solid #eee;">
-                    <select class="var-type" data-col="${index}">
-                        <option value="integer" ${guessedType === 'integer' ? 'selected' : ''}>Integer</option>
-                        <option value="decimal" ${guessedType === 'decimal' ? 'selected' : ''}>Decimal</option>
-                        <option value="string" ${guessedType === 'string' ? 'selected' : ''}>String/Category</option>
+                <td style="padding: 10px; border: 1px solid #ccc;">
+                    <select class="var-type-select" aria-label="Type for Column ${index + 1}">
+                        <option value="integer" ${type === 'integer' ? 'selected' : ''}>Integer</option>
+                        <option value="decimal" ${type === 'decimal' ? 'selected' : ''}>Decimal</option>
+                        <option value="string" ${type === 'string' ? 'selected' : ''}>String</option>
                     </select>
                 </td>
             `;
-            variableBody.appendChild(tr);
+            varBody.appendChild(tr);
         });
 
-        variableSettings.style.display = 'block';
+        varSettings.style.display = 'block';
+        analysisSection.style.display = 'none'; // Hide section 3 if re-processing
     });
 
-    document.getElementById('confirmBtn').addEventListener('click', function() {
-        // Here we would save the finalized names/types and the data to sessionStorage
-        alert("Data processed. Ready for next step.");
+    confirmBtn.addEventListener('click', function() {
+        const names = Array.from(document.querySelectorAll('.var-name-input')).map(i => i.value);
+        const hasHeaders = document.getElementById('hasHeaders').checked;
+        const dataRows = hasHeaders ? processedRows.slice(1) : processedRows;
+
+        // Build Final Table Header
+        const thead = document.getElementById('finalTableHead');
+        thead.innerHTML = `<tr>${names.map(name => `<th style="padding: 10px; border: 1px solid #ccc; text-align: left;">${name}</th>`).join('')}</tr>`;
+
+        // Build Final Table Body
+        const tbody = document.getElementById('finalTableBody');
+        tbody.innerHTML = dataRows.map(row => `
+            <tr>${row.map(cell => `<td style="padding: 8px; border: 1px solid #eee;">${cell}</td>`).join('')}</tr>
+        `).join('');
+
+        analysisSection.style.display = 'block';
+        analysisSection.scrollIntoView({ behavior: 'smooth' });
     });
 });
