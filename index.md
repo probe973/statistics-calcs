@@ -3,19 +3,36 @@ layout: default
 title: Home
 ---
 
-## 1. Paste Your Data
-Paste your tab-separated data here before selecting an analysis.
+<h2>1. Paste Your Data</h2>
+<p>Paste tab-separated data (e.g., from Excel or Google Sheets).</p>
 
-<textarea id="dataInput" placeholder="Paste tab-separated data here..." rows="12" style="width:100%; font-family: monospace;"></textarea>
+<textarea id="dataInput" rows="10" style="width:100%; font-family: monospace;"></textarea>
 
-<button id="storeDataBtn" style="margin-top: 10px; padding: 10px 20px;">Securely Save Data</button>
+<div style="margin: 15px 0;">
+    <input type="checkbox" id="hasHeaders" checked>
+    <label for="hasHeaders">First row contains headers</label>
+</div>
 
-<p id="saveStatus" style="color: green; font-weight: bold;"></p>
+<button id="processBtn">Process Data</button>
 
 <hr>
 
-## 2. Choose Your Analysis
-* [T-Test Analysis](./t-test.html)
-* [Descriptive Statistics](./descriptives.html)
+<div id="variableSettings" style="display:none;">
+    <h3>2. Confirm Variable Details</h3>
+    <p>Adjust names and data types if needed.</p>
+    <table id="variableTable" style="width:100%; border-collapse: collapse;">
+        <thead>
+            <tr style="text-align: left; border-bottom: 2px solid #ccc;">
+                <th>Original Data</th>
+                <th>Variable Name</th>
+                <th>Data Type</th>
+            </tr>
+        </thead>
+        <tbody id="variableBody">
+            </tbody>
+    </table>
+    <br>
+    <button id="confirmBtn" style="background-color: #28a745; color: white; padding: 10px 20px;">Confirm & Ready for Analysis</button>
+</div>
 
 <script src="{{ '/assets/js/data-handler.js' | relative_url }}"></script>
