@@ -50,11 +50,28 @@ title: Home
         </table>
     </div>
 
-    <h3>Available Analyses</h3>
-    <div style="display: flex; gap: 15px; flex-wrap: wrap;">
-        <button id="btnDescriptive" class="standard-button">Descriptive Statistics</button>
+
+<h3>Available Analyses</h3>
+    <div style="display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
+        
+        <div style="border: 1px solid #ccc; padding: 20px; border-radius: 8px;">
+            <h4>Descriptive Statistics</h4>
+            <p style="font-size: 0.9em; color: #555;">Calculate the mean, median, and standard deviation for your selected variables.</p>
+            <button id="btnDescriptive" class="standard-button">Run Descriptives</button>
+        </div>
+
+        <div style="border: 1px solid #ccc; padding: 20px; border-radius: 8px;">
+            <h4>Reliable Change Index (RCI)</h4>
+            <p style="font-size: 0.9em; color: #555;">Compare pre and post scores to determine if individual change is clinically significant.</p>
+            <a href="./rci/" style="text-decoration: none;">
+            <button id="btnRCI" class="standard-button">Run RCI Analysis</button>
+            </a>
+        </div>
+
     </div>
 </section>
+
+
 
 <style>
     /* Consistency and Accessibility Styles */
@@ -82,4 +99,5 @@ title: Home
     }
 </style>
 
+<script src="{{ '/assets/js/stats-library.js' | relative_url }}"></script>
 <script src="{{ '/assets/js/data-handler.js' | relative_url }}"></script>

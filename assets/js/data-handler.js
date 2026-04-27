@@ -49,6 +49,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     confirmBtn.addEventListener('click', function() {
+        sessionStorage.setItem('sharedProjectData', document.getElementById('dataInput').value.trim());
         const names = Array.from(document.querySelectorAll('.var-name-input')).map(i => i.value);
         const hasHeaders = document.getElementById('hasHeaders').checked;
         const dataRows = hasHeaders ? processedRows.slice(1) : processedRows;
@@ -66,4 +67,5 @@ document.addEventListener('DOMContentLoaded', function() {
         analysisSection.style.display = 'block';
         analysisSection.scrollIntoView({ behavior: 'smooth' });
     });
+
 });

@@ -12,7 +12,7 @@ url:              "https://probe973.github.io/statistics-calcs"
 # Jekyll Build Settings
 markdown:         kramdown
 highlighter:      rouge
-plugins:
+#plugins:
   # No SEO plugins needed.
 
 kramdown:
