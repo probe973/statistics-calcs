@@ -3,7 +3,7 @@ layout: default
 title: Reliable Change Index
 ---
 
-<h2>3. Reliable Change Index (RCI)</h2>
+<h2>Reliable Change Index (RCI)</h2>
 
 <section id="dataReview" style="margin-bottom: 30px;">
     <h3>Data Review</h3>

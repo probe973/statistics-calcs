@@ -48,17 +48,24 @@ document.addEventListener('DOMContentLoaded', function() {
         analysisSection.style.display = 'none'; // Hide section 3 if re-processing
     });
 
-    confirmBtn.addEventListener('click', function() {
-        sessionStorage.setItem('sharedProjectData', document.getElementById('dataInput').value.trim());
-        const names = Array.from(document.querySelectorAll('.var-name-input')).map(i => i.value);
+confirmBtn.addEventListener('click', function() {
+        const rawData = document.getElementById('dataInput').value.trim();
         const hasHeaders = document.getElementById('hasHeaders').checked;
+        
+        // 1. GRAB THE NAMES YOU TYPED INTO THE STEP 2 TABLE
+        const customNames = Array.from(document.querySelectorAll('.var-name-input')).map(i => i.value);
+
+        // 2. SAVE EVERYTHING FOR THE RCI PAGE
+        sessionStorage.setItem('sharedProjectData', rawData);
+        sessionStorage.setItem('hasHeaders', hasHeaders);
+        // We save your custom names as a list (JSON)
+        sessionStorage.setItem('variableNames', JSON.stringify(customNames));
+
+        // 3. UPDATE THE PREVIEW TABLE AT THE BOTTOM
         const dataRows = hasHeaders ? processedRows.slice(1) : processedRows;
-
-        // Build Final Table Header
         const thead = document.getElementById('finalTableHead');
-        thead.innerHTML = `<tr>${names.map(name => `<th style="padding: 10px; border: 1px solid #ccc; text-align: left;">${name}</th>`).join('')}</tr>`;
+        thead.innerHTML = `<tr>${customNames.map(name => `<th style="padding: 10px; border: 1px solid #ccc; text-align: left;">${name}</th>`).join('')}</tr>`;
 
-        // Build Final Table Body
         const tbody = document.getElementById('finalTableBody');
         tbody.innerHTML = dataRows.map(row => `
             <tr>${row.map(cell => `<td style="padding: 8px; border: 1px solid #eee;">${cell}</td>`).join('')}</tr>

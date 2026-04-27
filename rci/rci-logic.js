@@ -1,5 +1,9 @@
 document.addEventListener('DOMContentLoaded', function() {
     const rawData = sessionStorage.getItem('sharedProjectData');
+    const hasHeaders = sessionStorage.getItem('hasHeaders') === 'true';
+    // Retrieve the names you typed on the first page
+    const savedNames = JSON.parse(sessionStorage.getItem('variableNames') || '[]');
+
     if (!rawData) {
         alert("No data found. Returning to home page.");
         window.location.href = "../";
@@ -7,10 +11,14 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     const rows = rawData.trim().split('\n').map(r => r.split('\t'));
-    const headers = rows[0];
-    const dataRows = rows.slice(1);
+    
+    // DECISION LOGIC:
+    // If we have saved names from the home page, use them.
+    // Otherwise, use the first row of data (if headers exist).
+    let headers = (savedNames.length > 0) ? savedNames : (hasHeaders ? rows[0] : rows[0].map((_, i) => `Col ${i+1}`));
+    let dataRows = hasHeaders ? rows.slice(1) : rows;
 
-    // --- STEP 1: POPULATE THE DATA TABLE AT THE TOP ---
+    // --- STEP 1: POPULATE THE DATA TABLE ---
     const thead = document.getElementById('rciTableHead');
     const tbody = document.getElementById('rciTableBody');
 
