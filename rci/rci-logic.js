@@ -85,8 +85,8 @@ document.getElementById('runRCI').addEventListener('click', function() {
     const measureName = document.getElementById('measureName').value || "the measure";
     
     // 2. DATA EXTRACTION
-    const preIndex = parseInt(document.getElementById('preVar').value);
-    const postIndex = parseInt(document.getElementById('postVar').value);
+    const preIndex = parseInt(preSelect.value);
+    const postIndex = parseInt(postSelect.value);
     const preScores = dataRows.map(row => parseFloat(row[preIndex])).filter(n => !isNaN(n));
     const postScores = dataRows.map(row => parseFloat(row[postIndex])).filter(n => !isNaN(n));
     
@@ -104,14 +104,25 @@ document.getElementById('runRCI').addEventListener('click', function() {
     const direction = document.getElementById('direction').value;
     const manualSDInput = document.getElementById('manualSD').value.trim();
     
+    const sdSource = document.getElementById('sdSource').value; // Get dropdown choice
+    let usedSD;
+
+    if (sdSource === 'manual') {
+    // If user picked "Clinical Norms", take what's in the box
+    usedSD = parseFloat(document.getElementById('manualSD').value) || preSD; 
+    } else {
+    // If user picked "Sample Data", use the calculated preSD
+    usedSD = preSD;
+    }
+    
     // THE FIX: If the box is empty or not a number, revert to sample SD.
     // This allows switching back and forth without "sticking".
-    let usedSD;
-    if (manualSDInput === "" || isNaN(parseFloat(manualSDInput))) {
-        usedSD = preSD;
-    } else {
-        usedSD = parseFloat(manualSDInput);
-    }
+    //let usedSD;
+    //if (manualSDInput === "" || isNaN(parseFloat(manualSDInput))) {
+    //    usedSD = preSD;
+    //} else {
+    //    usedSD = parseFloat(manualSDInput);
+    //}
     
     //const sDiff = Math.sqrt(2 * Math.pow(usedSD * Math.sqrt(1 - reliability), 2));
     //const rcThreshold = 1.96 * sDiff;
