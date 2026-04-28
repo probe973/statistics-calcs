@@ -1,15 +1,51 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // Elements
+    
+    // 1. Elements
+    const dataInput = document.getElementById('dataInput');
     const processBtn = document.getElementById('processBtn');
     const confirmBtn = document.getElementById('confirmBtn');
     const varSettings = document.getElementById('variableSettings');
     const varBody = document.getElementById('variableBody');
     const analysisSection = document.getElementById('analysisSection');
+    const clearBtn = document.getElementById('clearBtn');
     
     let processedRows = [];
 
+    // Recovery: Look for the ONE state object we saved
+    const savedState = JSON.parse(sessionStorage.getItem('toolState'));
+    if (savedState && dataInput && dataInput.value === "") {
+        dataInput.value = savedState.rawData;
+        
+        if (savedState.analysisVisible) {
+            setTimeout(() => {
+                processBtn.click(); // Builds Step 2
+                
+                setTimeout(() => {
+                    const inputs = document.querySelectorAll('.var-name-input');
+                    const selects = document.querySelectorAll('.var-type-select'); // NEW: Find dropdowns
+                    
+                    if (savedState.customNames && inputs.length > 0) {
+                        inputs.forEach((input, i) => {
+                            if (savedState.customNames[i]) input.value = savedState.customNames[i];
+                        });
+                    }
+
+                    // NEW: Set the dropdowns back to what the user chose
+                    if (savedState.customTypes && selects.length > 0) {
+                        selects.forEach((select, i) => {
+                            if (savedState.customTypes[i]) select.value = savedState.customTypes[i];
+                        });
+                    }
+                    
+                    confirmBtn.click(); // Now run Step 3 with names AND types
+                }, 100); 
+            }, 100); 
+        }
+    }
+
+    // 3. Step 1 -> Step 2 (The "Process" Button)
     processBtn.addEventListener('click', function() {
-        const rawData = document.getElementById('dataInput').value.trim();
+        const rawData = dataInput.value.trim();
         const hasHeaders = document.getElementById('hasHeaders').checked;
 
         if (!rawData) return alert("Please paste data first.");
@@ -22,8 +58,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         firstRow.forEach((colValue, index) => {
             let varName = hasHeaders ? colValue.trim() : String.fromCharCode(65 + index);
-            
-            // Basic type guessing
             let val = hasHeaders ? (sampleRow[index] || "") : colValue;
             let type = (!isNaN(val) && val.trim() !== "") ? (val.includes('.') ? "decimal" : "integer") : "string";
 
@@ -45,23 +79,32 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         varSettings.style.display = 'block';
-        analysisSection.style.display = 'none'; // Hide section 3 if re-processing
+        analysisSection.style.display = 'none'; 
     });
 
-confirmBtn.addEventListener('click', function() {
-        const rawData = document.getElementById('dataInput').value.trim();
+    // 4. Step 2 -> Step 3 (The "Confirm" Button)
+    confirmBtn.addEventListener('click', function() {
+        const rawData = dataInput.value.trim();
         const hasHeaders = document.getElementById('hasHeaders').checked;
-        
-        // 1. GRAB THE NAMES YOU TYPED INTO THE STEP 2 TABLE
         const customNames = Array.from(document.querySelectorAll('.var-name-input')).map(i => i.value);
 
-        // 2. SAVE EVERYTHING FOR THE RCI PAGE
+        // Save for the RCI logic/other pages
         sessionStorage.setItem('sharedProjectData', rawData);
         sessionStorage.setItem('hasHeaders', hasHeaders);
-        // We save your custom names as a list (JSON)
         sessionStorage.setItem('variableNames', JSON.stringify(customNames));
 
-        // 3. UPDATE THE PREVIEW TABLE AT THE BOTTOM
+        // Save state for the Home button return
+        // Save everything for the "Home" button return
+        const state = {
+        rawData: dataInput.value,
+        analysisVisible: true,
+        customNames: Array.from(document.querySelectorAll('.var-name-input')).map(i => i.value),
+        // NEW: Grab the selected types from the dropdowns
+        customTypes: Array.from(document.querySelectorAll('.var-type-select')).map(s => s.value)
+    };
+    sessionStorage.setItem('toolState', JSON.stringify(state));
+
+        // Update the Preview Table
         const dataRows = hasHeaders ? processedRows.slice(1) : processedRows;
         const thead = document.getElementById('finalTableHead');
         thead.innerHTML = `<tr>${customNames.map(name => `<th style="padding: 10px; border: 1px solid #ccc; text-align: left;">${name}</th>`).join('')}</tr>`;
@@ -75,4 +118,11 @@ confirmBtn.addEventListener('click', function() {
         analysisSection.scrollIntoView({ behavior: 'smooth' });
     });
 
+    // 5. The Clear Button (Wipe memory and refresh)
+    if (clearBtn) {
+        clearBtn.addEventListener('click', function() {
+            sessionStorage.clear(); 
+            window.location.reload(); 
+        });
+    }
 });

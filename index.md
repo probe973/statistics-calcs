@@ -18,6 +18,7 @@ title: Home
     </div>
 
     <button id="processBtn" class="standard-button">Process Data</button>
+    <button id="clearBtn" class="standard-button" style="background-color: #dc3545;">Clear Everything</button>
 </section>
 
 <section id="variableSettings" aria-labelledby="config-heading" style="display:none; margin-bottom: 40px;">

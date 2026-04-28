@@ -9,21 +9,28 @@
 <body>
     <a href="#main-content" class="skip-link">Skip to main content</a>
 
-    <header>
-        <div class="container">
-            <h1>{{ site.title }}</h1>
-            <p>{{ site.description }}</p>
+   <header style="padding-bottom: 0;">
+    <div class="container">
+        <h1>{{ site.title }}</h1>
+        <p style="margin-bottom: 1.5rem;">{{ site.description }}</p>
+    </div>
+    <div style="background-color: rgba(0, 0, 0, 0.2); border-top: 1px solid rgba(255, 255, 255, 0.1);">
+        <div class="container" style="text-align: left; padding: 10px 20px;">
+            <nav>
+                <a href="{{ '/' | relative_url }}" style="color: #ffffff; text-decoration: none; font-size: 0.9rem; font-weight: bold;">Home</a>
+            </nav>
         </div>
-    </header>
-
+    </div>
+</header>
     <main id="main-content" class="container">
-        {{ content }}
+        
+    {{ content }}
     </main>
 
     <footer>
         <p>Built with <a href="https://jekyllrb.com/" target="_blank" rel="noopener noreferrer">Jekyll</a> and hosted on <a href="https://pages.github.com/" target="_blank" rel="noopener noreferrer">GitHub Pages</a>.</p>
     </footer>
 
-    <script src="{{ '/assets/js/scripts.js' | relative_url }}"></script>
+   
 </body>
 </html>

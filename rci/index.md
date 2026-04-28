@@ -64,6 +64,24 @@ title: Reliable Change Index
             <option value="increase">Higher score is better (e.g., Wellbeing, Resilience)</option>
         </select>
     </div>
+    <br>
+    <div style="margin-bottom: 20px;">
+    <label><strong>Graph Scale Range:</strong></label><br>
+    <div style="display: flex; gap: 10px; margin-top: 5px;">
+        <div>
+            <small style="color: #555;">Min Value</small><br>
+            <input type="number" id="scaleMin" placeholder="0" style="height:34px; width: 80px;">
+        </div>
+        <div>
+            <small style="color: #555;">Max Value</small><br>
+            <input type="number" id="scaleMax" placeholder="100" style="height:34px; width: 80px;">
+        </div>
+    </div>
+    <p style="font-size: 0.8em; color: #666; margin-top: 5px;">
+        *Auto-calculated to the nearest 10 based on your data, but can be changed manually.
+    </p>
+</div>
+
 </section>
 
 <section style="border: 1px solid #ccc; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
@@ -113,6 +131,9 @@ title: Reliable Change Index
 <div id="descriptiveStats" style="display:none; margin-top: 30px; padding: 20px; background: #f9f9f9; border-radius: 8px; border: 1px solid #ccc; border-left: 6px solid #005a9c;">
     </div>
 
+<div id="reportOutput" style="display:none; margin-top: 20px; padding: 20px; background: #fcfcfc; border-radius: 8px; border: 1px solid #e0e0e0; border-left: 6px solid #28a745; line-height: 1.6;">
+    </div>
+
 <section id="chartSection" style="display:none; margin-top: 30px; padding: 20px; background: #fff; border: 1px solid #ccc; border-radius: 8px;">
     <h3 style="color: #005a9c; margin-top:0;">Reliable Change Index Plot</h3>
     <div style="width: 100%; max-width: 700px; margin: 0 auto;">
@@ -122,6 +143,11 @@ title: Reliable Change Index
 </section>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<div id="exportButtons" style="display:none; margin-top: 20px; margin-bottom: 20px; gap: 10px;">
+    <button id="downloadCSV" style="padding: 10px 15px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-family: inherit;">Download Analysis (.csv)</button>
+    <button id="downloadPNG" style="padding: 10px 15px; background-color: #005a9c; color: white; border: none; border-radius: 4px; cursor: pointer; font-family: inherit;">Save Graph (.png)</button>
+</div>
 
 <div id="individualResults" style="display:none; margin-top: 30px;">
     <h3 style="color: #005a9c;">Individual Analysis</h3>
@@ -136,7 +162,7 @@ title: Reliable Change Index
                     <th style="padding:10px;">Change</th>
                     <th style="padding:10px;">RCI</th>
                     <th style="padding:10px;">Reliable Status</th>
-                    <th id="cscHeader" style="padding:10px; display:none;">Clinical Recovery</th>
+                    <th id="cscHeader" style="padding:10px; display:none;">CSC</th>
                 </tr>
             </thead>
             <tbody id="rciResultBody"></tbody>

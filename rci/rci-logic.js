@@ -34,6 +34,30 @@ document.addEventListener('DOMContentLoaded', function() {
         preSelect.add(new Option(h, i));
         postSelect.add(new Option(h, i));
     });
+    
+    // --- SMART SCALE AUTO-FILL ---
+    function updateSuggestedScale() {
+        const preIdx = parseInt(preSelect.value);
+        const postIdx = parseInt(postSelect.value);
+        const allScores = dataRows.map(row => [parseFloat(row[preIdx]), parseFloat(row[postIdx])]).flat().filter(n => !isNaN(n));
+
+        if (allScores.length > 0) {
+            const dataMin = Math.min(...allScores);
+            const dataMax = Math.max(...allScores);
+            // Min - 4, round down to nearest 10
+            let suggestedMin = Math.floor((dataMin - 4) / 10) * 10;
+            if (suggestedMin < 0) suggestedMin = 0;
+            // Max + 4, round up to nearest 10
+            let suggestedMax = Math.ceil((dataMax + 4) / 10) * 10;
+
+            document.getElementById('scaleMin').value = suggestedMin;
+            document.getElementById('scaleMax').value = suggestedMax;
+        }
+    }
+    // Listen for variable changes to update the boxes automatically
+    preSelect.addEventListener('change', updateSuggestedScale);
+    postSelect.addEventListener('change', updateSuggestedScale);
+    updateSuggestedScale(); // Initial run
 
     // --- STEP 3: SD INPUT TOGGLE ---
     const sdSource = document.getElementById('sdSource');
@@ -140,6 +164,17 @@ document.getElementById('runRCI').addEventListener('click', function() {
     const maxVal = Math.ceil((rawMax + 2) / 10) * 10;
 
     myChart = new Chart(ctx, {
+        plugins: [{
+            id: 'customCanvasBackgroundColor',
+            beforeDraw: (chart) => {
+                const {ctx} = chart;
+                ctx.save();
+                ctx.globalCompositeOperation = 'destination-over';
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, chart.width, chart.height);
+                ctx.restore();
+            }
+        }],
         data: {
             datasets: [
                 { type: 'scatter', label: 'Reliable Improvement', data: chartDataPoints.filter(p => p.color === '#2e7d32'), backgroundColor: '#2e7d32', pointRadius: 3.5 },
@@ -155,30 +190,45 @@ document.getElementById('runRCI').addEventListener('click', function() {
             maintainAspectRatio: true,
             aspectRatio: 1,
             scales: {
-                x: { title: { display: true, text: 'Pre-Test (' + measureName + ')', font: { weight: 'bold' } }, min: 0, max: maxVal, ticks: { stepSize: 10 } },
-                y: { title: { display: true, text: 'Post-Test (' + measureName + ')', font: { weight: 'bold' } }, min: 0, max: maxVal, ticks: { stepSize: 10 } }
+                x: { 
+                    title: { display: true, text: (savedNames[preIndex] || "Pre-Test") + ' (' + measureName + ')', font: { weight: 'bold' } }, 
+                    // This pulls the number from your scaleMin box
+                    min: parseFloat(document.getElementById('scaleMin').value) || 0, 
+                    // This pulls the number from your scaleMax box
+                    max: parseFloat(document.getElementById('scaleMax').value) || 100, 
+                    ticks: { stepSize: 10 } 
+                },
+                y: { 
+                    title: { display: true, text: (savedNames[postIndex] || "Post-Test") + ' (' + measureName + ')', font: { weight: 'bold' } }, 
+                    min: parseFloat(document.getElementById('scaleMin').value) || 0, 
+                    max: parseFloat(document.getElementById('scaleMax').value) || 100, 
+                    ticks: { stepSize: 10 } 
+                }
             },
             plugins: {
                 legend: { 
-                    display: true, 
-                    position: 'bottom',
-                    labels: {
-                        filter: function(item) { return item.text && !item.text.includes('(Hidden)'); },
-                        generateLabels: function(chart) {
-                            const original = Chart.defaults.plugins.legend.labels.generateLabels;
-                            const labels = original.call(this, chart);
-                            labels.forEach(label => {
-                                label.pointStyle = (label.text.includes('Reliable')) ? 'circle' : 'line';
-                            });
-                            return labels;
-                        },
-                        usePointStyle: true
+                        display: true, 
+                        position: 'bottom',
+                        labels: {
+                            // Accessibility: Filters out "Hidden" lines from the screen reader legend
+                            filter: function(item) { return item.text && !item.text.includes('(Hidden)'); },
+                            generateLabels: function(chart) {
+                                const original = Chart.defaults.plugins.legend.labels.generateLabels;
+                                const labels = original.call(this, chart);
+                                labels.forEach(label => {
+                                    // Accessibility: Differentiates status dots from boundary lines
+                                    label.pointStyle = (label.text.includes('Reliable')) ? 'circle' : 'line';
+                                });
+                                return labels;
+                            },
+                            usePointStyle: true
+                        }
                     }
-                }
             }
         }
     });
-
+    
+ 
     if (showCSC && activeThreshold) {
         myChart.data.datasets.push(
             { type: 'line', label: 'CSC Threshold', data: [{x: 0, y: activeThreshold}, {x: maxVal, y: activeThreshold}], borderColor: '#1565c0', borderWidth: 1.5, pointRadius: 0, fill: false },
@@ -222,9 +272,53 @@ document.getElementById('runRCI').addEventListener('click', function() {
     }).join('');
 
     // 7. SUMMARY OUTPUT (WITH DEFINITIONS & USED SD)
+    // Show all results sections
     statsDiv.style.display = 'block';
     individualDiv.style.display = 'block';
     document.getElementById('chartSection').style.display = 'block';
+    
+    // Show export buttons using flex only after calculations are done
+    const expBtn = document.getElementById('exportButtons');
+    if (expBtn) {
+        expBtn.style.display = 'flex';
+    }
+    
+    // --- PROFESSIONAL WRITE-UP ---
+    const reportDiv = document.getElementById('reportOutput');
+    if (reportDiv) {
+        // Use variables already defined in this function
+        const pImp = ((countImp / n) * 100).toFixed(1);
+        const pDet = ((countDet / n) * 100).toFixed(1);
+        const pNC = ((countNC / n) * 100).toFixed(1);
+        
+        const preLabel = (savedNames[preIndex] || "Pre-Test");
+        const postLabel = (savedNames[postIndex] || "Post-Test");
+
+        let reportHTML = `
+            <h3 style="margin-top:0; color:#333; border-bottom:1px solid #000; padding-bottom:5px;">Clinical Outcome Narrative</h3>
+            <p>An analysis of clinical outcomes was conducted for the ${measureName} (n = ${n}). Reliability of change was assessed using the Reliable Change Index (RCI) to compare scores from ${preLabel} to ${postLabel}.</p>
+            
+            <p>Results indicated that ${countImp} participants (${pImp}%) demonstrated reliable improvement, exceeding the margin of measurement error. Conversely, ${countDet} participants (${pDet}%) demonstrated reliable deterioration, and ${countNC} participants (${pNC}%) showed no reliable change.</p>
+        `;
+
+        if (showCSC && activeThreshold) {
+            const pCSC = ((countCSC / n) * 100).toFixed(1);
+            reportHTML += `
+                <p>Clinical significance was determined using a threshold of ${activeThreshold.toFixed(2)}. A total of ${countCSC} participants (${pCSC}%) met the criteria for clinically significant change, representing a transition from the clinical range to the functional population range.</p>
+            `;
+        }
+
+        reportDiv.innerHTML = reportHTML;
+        reportDiv.style.display = 'block';
+    }
+    
+    // Accessibility: Update the hidden text description for screen readers
+        const altTextDiv = document.getElementById('chartAltText');
+        if (altTextDiv) {
+            altTextDiv.innerText = `RCI Scatter Plot for ${measureName}. ` +
+                `Results: ${countImp} Improved, ${countDet} Deteriorated, and ${countNC} No Change. ` +
+                (showCSC ? `Clinical Significance Threshold set at ${activeThreshold.toFixed(2)}.` : "");
+        }
     const threshDisp = (activeThreshold !== null) ? activeThreshold.toFixed(2) : "N/A";
 
     statsDiv.innerHTML = `
@@ -232,8 +326,8 @@ document.getElementById('runRCI').addEventListener('click', function() {
         <table style="width:100%; border-collapse: collapse; margin-bottom: 20px;">
             <thead><tr style="background:#f2f2f2;"><th style="padding:8px; border:1px solid #ccc; text-align: left;">Timepoint</th><th style="padding:8px; border:1px solid #ccc; text-align: left;">n</th><th style="padding:8px; border:1px solid #ccc; text-align: left;">Mean</th><th style="padding:8px; border:1px solid #ccc; text-align: left;">SD</th></tr></thead>
             <tbody>
-                <tr><td style="padding:8px; border:1px solid #ccc;">Pre-test</td><td style="padding:8px; border:1px solid #ccc;">${n}</td><td style="padding:8px; border:1px solid #ccc;">${preMean.toFixed(2)}</td><td style="padding:8px; border:1px solid #ccc;">${preSD.toFixed(2)}</td></tr>
-                <tr><td style="padding:8px; border:1px solid #ccc;">Post-test</td><td style="padding:8px; border:1px solid #ccc;">${postScores.length}</td><td style="padding:8px; border:1px solid #ccc;">${StatsLib.mean(postScores).toFixed(2)}</td><td style="padding:8px; border:1px solid #ccc;">${StatsLib.standardDeviation(postScores).toFixed(2)}</td></tr>
+                <tr><td style="padding:8px; border:1px solid #ccc;">${savedNames[preIndex] || "Pre-test"}</td><td style="padding:8px; border:1px solid #ccc;">${n}</td><td style="padding:8px; border:1px solid #ccc;">${preMean.toFixed(2)}</td><td style="padding:8px; border:1px solid #ccc;">${preSD.toFixed(2)}</td></tr>
+                <tr><td style="padding:8px; border:1px solid #ccc;">${savedNames[postIndex] || "Post-test"}</td><td style="padding:8px; border:1px solid #ccc;">${postScores.length}</td><td style="padding:8px; border:1px solid #ccc;">${StatsLib.mean(postScores).toFixed(2)}</td><td style="padding:8px; border:1px solid #ccc;">${StatsLib.standardDeviation(postScores).toFixed(2)}</td></tr>
             </tbody>
         </table>
         <h3 style="color: #005a9c;">RCI & CSC Analysis</h3>
@@ -287,4 +381,51 @@ document.getElementById('runRCI').addEventListener('click', function() {
     helpText.innerText = "External: Use a specific threshold score defined by the measure's manual to determine clinical significance.";
 }
 });
+});
+
+// --- EXPORT FUNCTIONS ---
+
+// 1. Download Analysis Tables as CSV
+document.getElementById('downloadCSV')?.addEventListener('click', function() {
+    // Select the specific tables: Descriptive Stats and Individual Results
+    const statsTable = document.querySelector('#descriptiveStats table');
+    const individualTable = document.querySelector('#individualResults table');
+    
+    const tablesToExport = [statsTable, individualTable];
+    let csvContent = "data:text/csv;charset=utf-8,";
+    
+    tablesToExport.forEach((table) => {
+        if (table) {
+            const rows = table.querySelectorAll('tr');
+            rows.forEach(row => {
+                const cols = row.querySelectorAll('td, th');
+                const data = Array.from(cols).map(col => {
+                    // Clean text and escape quotes for Excel
+                    let text = col.innerText.replace(/"/g, '""').trim();
+                    return `"${text}"`;
+                }).join(",");
+                csvContent += data + "\r\n";
+            });
+            csvContent += "\r\n\r\n"; // Space between tables
+        }
+    });
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "RCI_Analysis_Report.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+});
+
+// 2. Download Chart as PNG
+document.getElementById('downloadPNG')?.addEventListener('click', function() {
+    const canvas = document.getElementById('rciChart');
+    if (!canvas) return;
+    
+    const link = document.createElement('a');
+    link.download = `RCI_Plot_${Date.now()}.png`;
+    link.href = canvas.toDataURL('image/png', 1.0);
+    link.click();
 });
