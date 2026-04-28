@@ -113,7 +113,11 @@ document.getElementById('runRCI').addEventListener('click', function() {
         usedSD = parseFloat(manualSDInput);
     }
     
-    const sDiff = Math.sqrt(2 * Math.pow(usedSD * Math.sqrt(1 - reliability), 2));
+    //const sDiff = Math.sqrt(2 * Math.pow(usedSD * Math.sqrt(1 - reliability), 2));
+    //const rcThreshold = 1.96 * sDiff;
+
+    const SEM = usedSD * Math.sqrt(1 - reliability);
+    const sDiff = Math.sqrt(2) * SEM;
     const rcThreshold = 1.96 * sDiff;
 
     // 4. CSC MATH
