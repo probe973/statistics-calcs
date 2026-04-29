@@ -110,4 +110,10 @@ window.addEventListener('analysisComplete', function() {
         );
         myChart.update();
     }
+
+    // 5. ACCESSIBILITY UPDATE
+    const altTextContainer = document.getElementById('chartAltText');
+    if (altTextContainer) {
+        altTextContainer.innerText = `Scatter plot results: ${res.countImp} participants improved, ${res.countDet} deteriorated, and ${res.countNC} showed no reliable change.`;
+    }
 });
