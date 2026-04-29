@@ -147,3 +147,10 @@ title: Reliable Change Index
 
 <script src="{{ '/rci/040_analysis.js' | relative_url }}"></script>
 
+
+
+
+<div id="reportOutput" style="display:none; margin-top: 20px; padding: 20px; background: #fcfcfc; border-radius: 8px; border: 1px solid #e0e0e0; border-left: 6px solid #28a745; line-height: 1.6;">
+    </div>
+
+<script src="{{ '/rci/050_narrative.js' | relative_url }}"></script>
