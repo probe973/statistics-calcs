@@ -174,3 +174,28 @@ title: Reliable Change Index
 <script src="{{ '/rci/060_chart.js' | relative_url }}"></script>
 
 <script src="{{ '/rci/070_export.js' | relative_url }}"></script>
+
+
+
+<div id="individualResults" style="display:none; margin-top: 30px;">
+    <h3 style="color: #005a9c;">Individual Analysis</h3>
+    
+    <div style="max-height: 400px; overflow-y: auto; border: 1px solid #ccc;">
+        <table style="width:100%; border-collapse: collapse;">
+            <thead style="position: sticky; top: 0; background: #005a9c; color: white;">
+                <tr>
+                    <th style="padding:10px;">Row</th>
+                    <th style="padding:10px;">Pre</th>
+                    <th style="padding:10px;">Post</th>
+                    <th style="padding:10px;">Change</th>
+                    <th style="padding:10px;">RCI</th>
+                    <th style="padding:10px;">Reliable Status</th>
+                    <th id="cscHeader" style="padding:10px; display:none;">CSC</th>
+                </tr>
+            </thead>
+            <tbody id="rciResultBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<script src="{{ '/rci/080_individual_table.js' | relative_url }}"></script>
