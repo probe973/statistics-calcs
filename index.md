@@ -64,7 +64,7 @@ title: Home
         <div style="border: 1px solid #ccc; padding: 20px; border-radius: 8px;">
             <h4>Reliable Change Index (RCI)</h4>
             <p style="font-size: 0.9em; color: #555;">Compare pre and post scores to determine if individual change is clinically significant.</p>
-            <a href="./rci/" style="text-decoration: none;">
+            <a href="./rci/rci" style="text-decoration: none;">
             <button id="btnRCI" class="standard-button">Run RCI Analysis</button>
             </a>
         </div>
