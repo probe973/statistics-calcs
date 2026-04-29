@@ -2,8 +2,9 @@
 
 // 1. Download Analysis Tables as CSV
 document.getElementById('downloadCSV')?.addEventListener('click', function() {
-    // Select the specific tables: Descriptive Stats and Individual Results
+    // Select the Descriptive Stats table
     const statsTable = document.querySelector('#descriptiveStats table');
+    // Note: Individual Results table doesn't exist yet, so we only grab what's there
     const individualTable = document.querySelector('#individualResults table');
     
     const tablesToExport = [statsTable, individualTable];
@@ -40,7 +41,6 @@ document.getElementById('downloadPNG')?.addEventListener('click', function() {
     if (!canvas) return;
     
     const link = document.createElement('a');
-    // Using a cleaner filename format
     link.download = `RCI_Plot_Export.png`;
     link.href = canvas.toDataURL('image/png', 1.0);
     link.click();
