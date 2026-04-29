@@ -138,3 +138,12 @@ title: Reliable Change Index
 </section>
 
 <script src="{{ '/rci/030_csc.js' | relative_url }}"></script>
+
+
+<button id="runRCI" class="standard-button btn-confirm">Run Analysis</button>
+
+<div id="descriptiveStats" style="display:none; margin-top: 30px; padding: 20px; background: #f9f9f9; border-radius: 8px; border: 1px solid #ccc; border-left: 6px solid #005a9c;">
+    </div>
+
+<script src="{{ '/rci/040_analysis.js' | relative_url }}"></script>
+
