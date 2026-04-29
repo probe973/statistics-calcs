@@ -1,5 +1,5 @@
 document.getElementById('runRCI').addEventListener('click', function() {
-    // 1. DATA RECOVERY (From session storage)
+    // 1. DATA RECOVERY
     const rawData = sessionStorage.getItem('sharedProjectData');
     const hasHeaders = sessionStorage.getItem('hasHeaders') === 'true';
     const savedNames = JSON.parse(sessionStorage.getItem('variableNames') || '[]');
@@ -15,7 +15,7 @@ document.getElementById('runRCI').addEventListener('click', function() {
     const sdSource = document.getElementById('sdSource').value;
     const direction = document.getElementById('direction').value;
 
-    // 3. CALCULATE RAW ARRAYS
+    // 3. DATA EXTRACTION
     const preScores = dataRows.map(row => parseFloat(row[preIdx])).filter(n => !isNaN(n));
     const postScores = dataRows.map(row => parseFloat(row[postIdx])).filter(n => !isNaN(n));
     const changeScores = dataRows.map(row => {
@@ -28,25 +28,24 @@ document.getElementById('runRCI').addEventListener('click', function() {
         return;
     }
 
-    // 4. STATS ENGINE
+    // 4. CALCULATIONS
     const n = preScores.length;
     const preMean = preScores.reduce((a, b) => a + b, 0) / n;
     const postMean = postScores.reduce((a, b) => a + b, 0) / n;
     const preSD = Math.sqrt(preScores.map(x => Math.pow(x - preMean, 2)).reduce((a, b) => a + b) / n);
     const postSD = Math.sqrt(postScores.map(x => Math.pow(x - postMean, 2)).reduce((a, b) => a + b) / n);
     
-    // Mean Difference and Cohen's d (Your specific addition)
+    // Mean Difference and Cohen's d
     const meanDiff = postMean - preMean;
     const sdDiff = Math.sqrt(changeScores.map(x => Math.pow(x - meanDiff, 2)).reduce((a, b) => a + b) / n);
     const cohensD = sdDiff !== 0 ? (meanDiff / sdDiff) : 0;
 
-    // 5. RCI & CSC THRESHOLDS
+    // RCI & CSC Thresholds
     let usedSD = (sdSource === 'manual') ? (parseFloat(document.getElementById('manualSD').value) || preSD) : preSD;
     const SEM = usedSD * Math.sqrt(1 - reliability);
     const sDiff = Math.sqrt(2) * SEM;
     const rcThreshold = 1.96 * sDiff;
 
-    // CSC Threshold Calculation (Mirroring your logic)
     const showCSC = document.getElementById('doCSC').checked;
     const cscMethod = document.getElementById('cscCriterion').value;
     let activeThreshold = null;
@@ -69,7 +68,7 @@ document.getElementById('runRCI').addEventListener('click', function() {
         }
     }
 
-    // 6. OUTPUT GENERATION
+    // 5. OUTPUT
     const statsDiv = document.getElementById('descriptiveStats');
     statsDiv.style.display = 'block';
 
@@ -90,17 +89,17 @@ document.getElementById('runRCI').addEventListener('click', function() {
 
         <div style="background: #eef4f8; padding: 15px; border-radius: 4px; margin-bottom: 20px; border: 1px solid #d0e0eb;">
             <p style="margin:0;"><strong>Mean Difference:</strong> ${meanDiff.toFixed(2)}</p>
-            <p style="margin:5px 0 0 0;"><strong>Effect Size (Cohen's d<sub>av</sub>):</strong> ${Math.abs(cohensD).toFixed(2)}</p>
+            <p style="margin:5px 0 0 0;"><strong>Effect Size (Cohen's d):</strong> ${Math.abs(cohensD).toFixed(2)}</p>
         </div>
 
         <h3 style="color: #005a9c;">RCI & CSC Analysis</h3>
         <p style="font-size: 0.9em; color: #333;"><strong>Used Standard Deviation:</strong> ${usedSD.toFixed(2)}</p>
-        <p style="font-size: 0.9em; color: #333;"><strong>RC Threshold: ${rcThreshold.toFixed(2)}</strong> points.</p>
-        ${showCSC && activeThreshold ? `<p style="font-size: 0.9em; color: #333;"><strong>CSC Threshold: ${activeThreshold.toFixed(2)}</strong>.</p>` : ''}
+        <p style="font-size: 0.9em; color: #333;"><strong>RC Threshold: ${rcThreshold.toFixed(2)}</strong> points. The number of points an individual must change for it to be classed as reliable.</p>
+        ${showCSC && activeThreshold ? `<p style="font-size: 0.9em; color: #333;"><strong>CSC Threshold: ${activeThreshold.toFixed(2)}</strong>. Individuals must make reliable change and cross this threshold to be classed as clinically significant.</p>` : ''}
     `;
 
-    // Save these calculated values to sessionStorage so future scripts (Chart/Table) can use them
+    // Save for next blocks
     sessionStorage.setItem('rci_results', JSON.stringify({
-        preIdx, postIdx, sDiff, rcThreshold, activeThreshold, direction, showCSC, measureName
+        preIdx, postIdx, sDiff, rcThreshold, activeThreshold, direction, showCSC, measureName, n, preMean, preSD, usedSD
     }));
 });
