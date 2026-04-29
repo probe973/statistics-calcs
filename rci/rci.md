@@ -1,9 +1,16 @@
-<section id="dataReview">
+---
+layout: default
+title: Reliable Change Index
+---
+
+<h2>Reliable Change Index (RCI)</h2>
+
+<section id="dataReview" style="margin-bottom: 30px;">
     <h3>Data Review</h3>
-    <div id="tableWrapper">
-        <table id="rciDataTable" class="common-data-table" style="width:100%; border-collapse: collapse;">
-            <thead></thead>
-            <tbody></tbody>
+    <div id="tableWrapper" style="max-height: 300px; overflow-y: auto; border: 1px solid #ccc; border-radius: 4px;">
+        <table id="rciDataTable" style="width:100%; border-collapse: collapse;">
+            <thead id="rciTableHead" style="position: sticky; top: 0; background: #eee;"></thead>
+            <tbody id="rciTableBody"></tbody>
         </table>
     </div>
 </section>
