@@ -118,7 +118,9 @@ document.getElementById('runRCI').addEventListener('click', function() {
         preIndex, postIndex, sDiff, rcThreshold, activeThreshold, direction, showCSC, measureName, n, 
         countImp, countNC, countDet, countCSC
     }));
+
+    window.dispatchEvent(new CustomEvent('analysisComplete'));
 });
 
 
-window.dispatchEvent(new CustomEvent('analysisComplete'));
+
