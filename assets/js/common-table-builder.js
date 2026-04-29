@@ -1,16 +1,18 @@
-
-function buildCommonTable(headId, bodyId) {
+document.addEventListener('DOMContentLoaded', function() {
+    // 1. Get the data (Exactly as the Home page does)
     const rawData = sessionStorage.getItem('sharedProjectData');
     const hasHeaders = sessionStorage.getItem('hasHeaders') === 'true';
     const savedNames = JSON.parse(sessionStorage.getItem('variableNames') || '[]');
 
     if (!rawData) return;
 
+    // 2. Prepare the data
     const processedRows = rawData.trim().split('\n').map(r => r.split('\t'));
     const dataRows = hasHeaders ? processedRows.slice(1) : processedRows;
 
-    const thead = document.getElementById(headId);
-    const tbody = document.getElementById(bodyId);
+    // 3. Find the table parts using a "data-attribute" instead of specific names
+    const thead = document.querySelector('[data-table-part="head"]');
+    const tbody = document.querySelector('[data-table-part="body"]');
 
     if (thead) {
         thead.innerHTML = `<tr>${savedNames.map(name => `
@@ -25,4 +27,4 @@ function buildCommonTable(headId, bodyId) {
             `).join('')}</tr>
         `).join('');
     }
-}
+});
