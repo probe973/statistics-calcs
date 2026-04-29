@@ -199,3 +199,21 @@ title: Reliable Change Index
 </div>
 
 <script src="{{ '/rci/080_individual_table.js' | relative_url }}"></script>
+
+
+
+
+
+<script>
+// This force-connects the RCI SD box to the CSC SD boxes
+document.addEventListener('input', function(e) {
+    if (e.target && e.target.id === 'sdInput') {
+        const val = e.target.value;
+        const targetA = document.getElementById('mClinSD_A');
+        const targetC = document.getElementById('mClinSD_C');
+        
+        if (targetA) targetA.value = val;
+        if (targetC) targetC.value = val;
+    }
+});
+</script>
