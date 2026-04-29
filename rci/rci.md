@@ -16,3 +16,9 @@ title: Reliable Change Index
 </section>
 
 <script src="{{ '/assets/js/common-table-builder.js' | relative_url }}"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        buildCommonTable('rciTableHead', 'rciTableBody');
+    });
+</script>
