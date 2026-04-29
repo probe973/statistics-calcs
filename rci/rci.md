@@ -93,3 +93,48 @@ title: Reliable Change Index
 
 <script src="{{ '/rci/020_measurements.js' | relative_url }}"></script>
 
+
+
+<section style="border: 1px solid #ccc; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+    <h3>Clinical Significant Change (CSC)</h3>
+    <div style="margin-bottom: 10px; display: flex; align-items: center;">
+        <input type="checkbox" id="doCSC" style="width: 20px; height: 20px; margin-right: 10px;">
+        <label for="doCSC"><strong>Run Clinical Significance Analysis?</strong></label>
+    </div>
+
+    <div id="cscOptions" style="display:none; padding-top: 15px; border-top: 1px dashed #ccc;">
+        <label for="cscCriterion"><strong>Choose Recovery Criterion:</strong></label><br>
+        <select id="cscCriterion" style="height:44px; width: 100%; margin-bottom: 10px;">
+            <option value="" disabled selected>-- Choose a criterion for CSC --</option>
+            <option value="A">Criterion A: Movement away from the Clinical Population</option>
+            <option value="B">Criterion B: Movement into the Comparative Population range</option>
+            <option value="C">Criterion C: Crossing the threshold between 'Clinical' and 'Functional'</option>
+            <option value="External">External: Using a fixed clinical cut-off score</option>
+        </select>
+
+        <p id="criterionHelp" style="font-size: 0.9em; color: #555; font-style: italic; margin-bottom: 15px;">
+            Select a criterion above to see how it defines 'recovery'.
+        </p>
+
+        <div id="cscInputs">
+            <div id="clinicalNorms" style="display:none;">
+                <label>Clinical Mean:</label> 
+                <input type="number" id="clinicalMean" placeholder="Enter mean" style="width:100px; height:34px;">
+                <label>Clinical SD:</label> 
+                <input type="number" id="clinicalSD" placeholder="Enter SD" style="width:100px; height:34px;">
+            </div>
+            <div id="healthyNorms" style="display:none; margin-top:10px;">
+                <label>Comparative Mean:</label> 
+                <input type="number" id="healthyMean" placeholder="Enter mean" style="width:100px; height:34px;">
+                <label>Comparative SD:</label> 
+                <input type="number" id="healthySD" placeholder="Enter SD" style="width:100px; height:34px;">
+            </div>
+            <div id="externalInput" style="display:none; margin-top:10px;">
+                <label>Fixed Cut-off Score:</label> 
+                <input type="number" id="externalValue" placeholder="Enter score" style="width:100px; height:34px;">
+            </div>
+        </div>
+    </div>
+</section>
+
+<script src="{{ '/rci/030_csc.js' | relative_url }}"></script>
