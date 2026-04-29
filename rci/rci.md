@@ -172,3 +172,5 @@ title: Reliable Change Index
 </div>
 
 <script src="{{ '/rci/060_chart.js' | relative_url }}"></script>
+
+<script src="{{ '/rci/070_export.js' | relative_url }}"></script>
