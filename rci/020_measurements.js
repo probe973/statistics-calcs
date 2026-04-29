@@ -50,4 +50,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initial Run
     updateSuggestedScale();
+
+    // --- SD SYNC LOGIC ---
+    // This copies the SD from the RCI section into the CSC sections automatically
+    const rciSDInput = document.getElementById('sdInput');
+    const cscSD_A = document.getElementById('mClinSD_A');
+    const cscSD_C = document.getElementById('mClinSD_C');
+
+    rciSDInput?.addEventListener('input', function() {
+        if (cscSD_A) cscSD_A.value = this.value;
+        if (cscSD_C) cscSD_C.value = this.value;
+    });
 });
