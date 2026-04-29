@@ -205,15 +205,16 @@ title: Reliable Change Index
 
 
 <script>
-// This force-connects the RCI SD box to the CSC SD boxes
+// This force-connects the RCI SD box (manualSD) to the CSC SD box (clinicalSD)
 document.addEventListener('input', function(e) {
-    if (e.target && e.target.id === 'sdInput') {
+    // Check if the user is typing in the "Clinical Norm SD" box
+    if (e.target && e.target.id === 'manualSD') {
         const val = e.target.value;
-        const targetA = document.getElementById('mClinSD_A');
-        const targetC = document.getElementById('mClinSD_C');
+        const targetCSC = document.getElementById('clinicalSD');
         
-        if (targetA) targetA.value = val;
-        if (targetC) targetC.value = val;
+        if (targetCSC) {
+            targetCSC.value = val;
+        }
     }
 });
 </script>
