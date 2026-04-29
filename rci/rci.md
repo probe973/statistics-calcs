@@ -154,3 +154,21 @@ title: Reliable Change Index
     </div>
 
 <script src="{{ '/rci/050_narrative.js' | relative_url }}"></script>
+
+
+<section id="chartSection" style="display:none; margin-top: 30px; padding: 20px; background: #fff; border: 1px solid #ccc; border-radius: 8px;">
+    <h3 style="color: #005a9c; margin-top:0;">Reliable Change Index Plot</h3>
+    <div style="width: 100%; max-width: 700px; margin: 0 auto;">
+        <canvas id="rciChart" aria-label="RCI Scatter Plot" role="img"></canvas>
+    </div>
+    <div id="chartAltText" class="visually-hidden" style="margin-top:10px; font-size: 0.85em; color: #555;"></div>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<div id="exportButtons" style="display:none; margin-top: 20px; margin-bottom: 20px; gap: 10px;">
+    <button id="downloadCSV" style="padding: 10px 15px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-family: inherit;">Download Analysis (.csv)</button>
+    <button id="downloadPNG" style="padding: 10px 15px; background-color: #005a9c; color: white; border: none; border-radius: 4px; cursor: pointer; font-family: inherit;">Save Graph (.png)</button>
+</div>
+
+<script src="{{ '/rci/060_chart.js' | relative_url }}"></script>
