@@ -119,3 +119,6 @@ document.getElementById('runRCI').addEventListener('click', function() {
         countImp, countNC, countDet, countCSC
     }));
 });
+
+
+window.dispatchEvent(new CustomEvent('analysisComplete'));
