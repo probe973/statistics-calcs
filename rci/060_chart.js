@@ -8,7 +8,7 @@ window.addEventListener('analysisComplete', function() {
 
     if (!res || !rawData) return;
 
-    // 1. DATA PROCESSING
+    // 1. DATA PROCESSING WITH APA CATEGORIES
     const rows = rawData.trim().split('\n').map(r => r.split('\t'));
     const dataRows = hasHeaders ? rows.slice(1) : rows;
 
@@ -19,13 +19,13 @@ window.addEventListener('analysisComplete', function() {
         
         const rawChange = post - pre;
         const rciScore = rawChange / res.sDiff;
-        let pColor = '#9e9e9e'; 
+        let category = 'none'; 
         
         if (Math.abs(rciScore) >= 1.96) {
             const improved = (res.direction === 'decrease' && rawChange < 0) || (res.direction === 'increase' && rawChange > 0);
-            pColor = improved ? '#2e7d32' : '#c62828'; 
+            category = improved ? 'improved' : 'deteriorated'; 
         }
-        return { x: pre, y: post, color: pColor };
+        return { x: pre, y: post, category: category };
     }).filter(p => p !== null);
 
     // 2. SETUP CANVAS
@@ -43,7 +43,7 @@ window.addEventListener('analysisComplete', function() {
     const scaleMax = parseFloat(document.getElementById('scaleMax').value) || 100;
     const maxVal = scaleMax; 
 
-    // 3. INITIALIZE CHART
+    // 3. INITIALIZE APA-STYLED CHART
     myChart = new Chart(ctx, {
         plugins: [{
             id: 'customCanvasBackgroundColor',
@@ -58,12 +58,68 @@ window.addEventListener('analysisComplete', function() {
         }],
         data: {
             datasets: [
-                { type: 'scatter', label: 'Reliable Improvement', data: chartDataPoints.filter(p => p.color === '#2e7d32'), backgroundColor: '#2e7d32', pointRadius: 3.5 },
-                { type: 'scatter', label: 'Reliable Deterioration', data: chartDataPoints.filter(p => p.color === '#c62828'), backgroundColor: '#c62828', pointRadius: 3.5 },
-                { type: 'scatter', label: 'No Reliable Change', data: chartDataPoints.filter(p => p.color === '#9e9e9e'), backgroundColor: '#9e9e9e', pointRadius: 3.5 },
-                { type: 'line', label: 'No Change', data: [{x: scaleMin, y: scaleMin}, {x: maxVal, y: maxVal}], borderColor: '#212121', borderDash: [5, 5], borderWidth: 1.5, pointRadius: 0, fill: false },
-                { type: 'line', label: 'RC Boundaries', data: [{x: scaleMin, y: scaleMin + res.rcThreshold}, {x: maxVal - res.rcThreshold, y: maxVal}], borderColor: '#bdbdbd', borderWidth: 1, pointRadius: 0, fill: false },
-                { type: 'line', label: 'RC Lower (Hidden)', data: [{x: scaleMin + res.rcThreshold, y: scaleMin}, {x: maxVal, y: maxVal - res.rcThreshold}], borderColor: '#bdbdbd', borderWidth: 1, pointRadius: 0, fill: false }
+                // Reliable improvement
+                {
+                    type: 'scatter',
+                    label: 'Reliable improvement',
+                    data: chartDataPoints.filter(p => p.category === 'improved'),
+                    backgroundColor: '#0072B2',
+                    pointStyle: 'triangle',
+                    pointRadius: 5
+                },
+                // Reliable deterioration
+                {
+                    type: 'scatter',
+                    label: 'Reliable deterioration',
+                    data: chartDataPoints.filter(p => p.category === 'deteriorated'),
+                    pointStyle: 'rectRot',
+                    backgroundColor: '#D55E00',
+                    borderColor: '#000',
+                    borderWidth: 1,
+                    pointRadius: 6
+                },
+                // No reliable change
+                {
+                    type: 'scatter',
+                    label: 'No reliable change',
+                    data: chartDataPoints.filter(p => p.category === 'none'),
+                    backgroundColor: '#7A7A7A',
+                    pointStyle: 'circle',
+                    pointRadius: 4
+                },
+                // No change diagonal
+                {
+                    type: 'line',
+                    label: 'No change',
+                    data: [{x: scaleMin, y: scaleMin}, {x: maxVal, y: maxVal}],
+                    borderColor: '#000',
+                    borderWidth: 1,
+                    borderDash: [4, 4],
+                    pointRadius: 0,
+                    fill: false
+                },
+                // Reliable change upper boundary
+                {
+                    type: 'line',
+                    label: 'Reliable change boundary',
+                    data: [{x: scaleMin, y: scaleMin + res.rcThreshold}, {x: maxVal - res.rcThreshold, y: maxVal}],
+                    borderColor: '#7a7a7a',
+                    borderWidth: 1,
+                    borderDash: [6, 4],
+                    pointRadius: 0,
+                    fill: false
+                },
+                // Reliable change lower boundary
+                {
+                    type: 'line',
+                    label: '', // Hidden label to keep it clean but present
+                    data: [{x: scaleMin + res.rcThreshold, y: scaleMin}, {x: maxVal, y: maxVal - res.rcThreshold}],
+                    borderColor: '#7a7a7a',
+                    borderWidth: 1,
+                    borderDash: [6, 4],
+                    pointRadius: 0,
+                    fill: false
+                }
             ]
         },
         options: {
@@ -72,41 +128,78 @@ window.addEventListener('analysisComplete', function() {
             aspectRatio: 1,
             scales: {
                 x: { 
-                    title: { display: true, text: (savedNames[res.preIndex] || "Pre-Test") + ' (' + res.measureName + ')', font: { weight: 'bold' } }, 
+                    title: { display: true, text: (savedNames[res.preIndex] || "Pre-test") + ' (' + res.measureName + ')', font: { weight: 'bold' } }, 
                     min: scaleMin, max: scaleMax,
-                    ticks: { stepSize: 10 } 
+                    ticks: { stepSize: 10 },
+                    grid: { display: false },
+                    border: { color: '#000', width: 1 }
                 },
                 y: { 
-                    title: { display: true, text: (savedNames[res.postIndex] || "Post-Test") + ' (' + res.measureName + ')', font: { weight: 'bold' } }, 
+                    title: { display: true, text: (savedNames[res.postIndex] || "Post-test") + ' (' + res.measureName + ')', font: { weight: 'bold' } }, 
                     min: scaleMin, max: scaleMax,
-                    ticks: { stepSize: 10 } 
+                    ticks: { stepSize: 10 },
+                    grid: { display: false },
+                    border: { color: '#000', width: 1 }
                 }
             },
             plugins: {
                 legend: { 
                     display: true, position: 'bottom',
                     labels: {
-                        filter: function(item) { return item.text && !item.text.includes('(Hidden)'); },
+                        filter: item => item.text, // Filters out empty string label
+                        usePointStyle: true,
+                        padding: 15,
                         generateLabels: function(chart) {
-                            const original = Chart.defaults.plugins.legend.labels.generateLabels;
-                            const labels = original.call(this, chart);
+                            const labels = Chart.defaults.plugins.legend.labels.generateLabels(chart);
                             labels.forEach(label => {
-                                label.pointStyle = (label.text.includes('Reliable')) ? 'circle' : 'line';
+                                const ds = chart.data.datasets[label.datasetIndex];
+                                if (!ds) return;
+
+                                // Scatter points: preserve categorical shapes (Triangle, Diamond, Circle)
+                                if (ds.type === 'scatter') {
+                                    label.pointStyle = ds.pointStyle || 'circle';
+                                    label.strokeStyle = ds.backgroundColor || '#000';
+                                }
+
+                                // Line datasets: Force precise line matching
+                                if (ds.type === 'line') {
+                                    label.pointStyle = 'line';
+                                    label.strokeStyle = ds.borderColor || '#000';
+                                    label.lineWidth = ds.borderWidth || 1;
+                                    label.lineDash = ds.borderDash || [];
+                                }
                             });
                             return labels;
-                        },
-                        usePointStyle: true
+                        }
                     }
                 }
             }
         }
     });
 
-    // 4. ADD CSC LINES IF ACTIVE
+    // 4. ADD CSC CUTOFF LINES IF ACTIVE
     if (res.showCSC && res.activeThreshold) {
         myChart.data.datasets.push(
-            { type: 'line', label: 'CSC Threshold', data: [{x: scaleMin, y: res.activeThreshold}, {x: maxVal, y: res.activeThreshold}], borderColor: '#1565c0', borderWidth: 1.5, pointRadius: 0, fill: false },
-            { type: 'line', label: 'CSC Vert (Hidden)', data: [{x: res.activeThreshold, y: scaleMin}, {x: res.activeThreshold, y: maxVal}], borderColor: '#1565c0', borderWidth: 1.5, pointRadius: 0, fill: false }
+            {
+                type: 'line',
+                label: 'Clinical significance cutoff',
+                data: [{ x: scaleMin, y: res.activeThreshold }, { x: maxVal, y: res.activeThreshold }],
+                borderColor: '#000',
+                borderWidth: 1,
+                borderDash: [1, 3],
+                pointRadius: 0,
+                fill: false
+            },
+            {
+                type: 'line',
+                label: '',
+                data: [{ x: res.activeThreshold, y: scaleMin }, { x: res.activeThreshold, y: maxVal }],
+                borderColor: '#000',
+                borderWidth: 1,
+                borderDash: [1, 3],
+                pointRadius: 0,
+                fill: false
+            }
         );
         myChart.update();
     }
