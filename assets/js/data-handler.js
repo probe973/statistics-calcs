@@ -15,6 +15,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const savedState = JSON.parse(sessionStorage.getItem('toolState'));
     if (savedState && dataInput && dataInput.value === "") {
         dataInput.value = savedState.rawData;
+
+        // RESTORE THE CHECKBOX STATE HERE
+    if (savedState.hasOwnProperty('hasHeaders')) {
+        document.getElementById('hasHeaders').checked = savedState.hasHeaders;
+    }
         
         if (savedState.analysisVisible) {
             setTimeout(() => {
@@ -97,6 +102,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Save everything for the "Home" button return
         const state = {
         rawData: dataInput.value,
+        hasHeaders: document.getElementById('hasHeaders').checked,
         analysisVisible: true,
         customNames: Array.from(document.querySelectorAll('.var-name-input')).map(i => i.value),
         // NEW: Grab the selected types from the dropdowns
