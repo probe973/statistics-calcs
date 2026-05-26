@@ -158,99 +158,305 @@ document.getElementById('runRCI').addEventListener('click', function() {
     }
 
     // 5. CHART DATA & DRAWING (SQUARE, CLEAN, NO "y=x")
-    const chartDataPoints = dataRows.map(row => {
-        const pre = parseFloat(row[preIndex]);
-        const post = parseFloat(row[postIndex]);
-        if (isNaN(pre) || isNaN(post)) return null;
-        const rawChange = post - pre;
-        const rciScore = rawChange / sDiff;
-        let pColor = '#9e9e9e'; 
-        if (Math.abs(rciScore) >= 1.96) {
-            const improved = (direction === 'decrease' && rawChange < 0) || (direction === 'increase' && rawChange > 0);
-            pColor = improved ? '#2e7d32' : '#c62828'; 
+    // APA-style + colour-blind accessible RCI chart
+
+Chart.defaults.font.family = 'Arial';
+Chart.defaults.font.size = 11;
+Chart.defaults.color = '#000';
+
+const chartDataPoints = dataRows.map(row => {
+
+    const pre = parseFloat(row[preIndex]);
+    const post = parseFloat(row[postIndex]);
+
+    if (isNaN(pre) || isNaN(post)) return null;
+
+    const rawChange = post - pre;
+    const rciScore = rawChange / sDiff;
+
+    let category = 'none';
+
+    if (Math.abs(rciScore) >= 1.96) {
+
+        const improved =
+            (direction === 'decrease' && rawChange < 0) ||
+            (direction === 'increase' && rawChange > 0);
+
+        category = improved ? 'improved' : 'deteriorated';
+    }
+
+    return {
+        x: pre,
+        y: post,
+        category
+    };
+
+}).filter(p => p !== null);
+
+const ctx = document.getElementById('rciChart').getContext('2d');
+
+if (myChart) {
+    myChart.destroy();
+}
+
+const rawMax = Math.max(
+    ...chartDataPoints.map(p => Math.max(p.x, p.y)),
+    activeThreshold || 0
+);
+
+const maxVal = Math.ceil((rawMax + 2) / 10) * 10;
+
+myChart = new Chart(ctx, {
+
+    plugins: [{
+        id: 'customCanvasBackgroundColor',
+        beforeDraw: (chart) => {
+            const { ctx } = chart;
+
+            ctx.save();
+            ctx.globalCompositeOperation = 'destination-over';
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, chart.width, chart.height);
+            ctx.restore();
         }
-        return { x: pre, y: post, color: pColor };
-    }).filter(p => p !== null);
+    }],
 
-    const ctx = document.getElementById('rciChart').getContext('2d');
-    if (myChart) { myChart.destroy(); }
+    data: {
 
-    const rawMax = Math.max(...chartDataPoints.map(p => Math.max(p.x, p.y)), activeThreshold || 0);
-    const maxVal = Math.ceil((rawMax + 2) / 10) * 10;
+        datasets: [
 
-    myChart = new Chart(ctx, {
-        plugins: [{
-            id: 'customCanvasBackgroundColor',
-            beforeDraw: (chart) => {
-                const {ctx} = chart;
-                ctx.save();
-                ctx.globalCompositeOperation = 'destination-over';
-                ctx.fillStyle = 'white';
-                ctx.fillRect(0, 0, chart.width, chart.height);
-                ctx.restore();
+            // Reliable improvement
+            {
+                type: 'scatter',
+                label: 'Reliable improvement',
+                data: chartDataPoints.filter(p => p.category === 'improved'),
+                backgroundColor: '#0072B2',
+                pointStyle: 'triangle',
+                pointRadius: 5
+            },
+
+            // Reliable deterioration
+            {
+                type: 'scatter',
+                label: 'Reliable deterioration',
+                data: chartDataPoints.filter(p => p.category === 'deteriorated'),
+                //backgroundColor: '#000000',
+                pointStyle: 'rectRot',
+                backgroundColor: '#D55E00',
+                borderColor: '#000',
+                borderWidth: 1,
+                pointRadius: 6
+            },
+
+            // No reliable change
+            {
+                type: 'scatter',
+                label: 'No reliable change',
+                data: chartDataPoints.filter(p => p.category === 'none'),
+                backgroundColor: '#7A7A7A',
+                pointStyle: 'circle',
+                pointRadius: 4
+            },
+
+            // No change diagonal
+            {
+                type: 'line',
+                label: 'No change',
+                data: [
+                    { x: 0, y: 0 },
+                    { x: maxVal, y: maxVal }
+                ],
+                borderColor: '#000',
+                borderWidth: 1,
+                borderDash: [4, 4],
+                pointRadius: 0,
+                fill: false
+            },
+
+            // Reliable change upper boundary
+            {
+                type: 'line',
+                label: 'Reliable change boundary',
+                data: [
+                    { x: 0, y: rcThreshold },
+                    { x: maxVal - rcThreshold, y: maxVal }
+                ],
+                borderColor: '#7a7a7a',
+                borderWidth: 1,
+                borderDash: [6, 4],
+                pointRadius: 0,
+                fill: false
+            },
+
+            // Reliable change lower boundary
+            {
+                type: 'line',
+                label: '',
+                data: [
+                    { x: rcThreshold, y: 0 },
+                    { x: maxVal, y: maxVal - rcThreshold }
+                ],
+                borderColor: '#7a7a7a',
+                borderWidth: 1,
+                borderDash: [6, 4],
+                pointRadius: 0,
+                fill: false
             }
-        }],
-        data: {
-            datasets: [
-                { type: 'scatter', label: 'Reliable Improvement', data: chartDataPoints.filter(p => p.color === '#2e7d32'), backgroundColor: '#2e7d32', pointRadius: 3.5 },
-                { type: 'scatter', label: 'Reliable Deterioration', data: chartDataPoints.filter(p => p.color === '#c62828'), backgroundColor: '#c62828', pointRadius: 3.5 },
-                { type: 'scatter', label: 'No Reliable Change', data: chartDataPoints.filter(p => p.color === '#9e9e9e'), backgroundColor: '#9e9e9e', pointRadius: 3.5 },
-                { type: 'line', label: 'No Change', data: [{x: 0, y: 0}, {x: maxVal, y: maxVal}], borderColor: '#212121', borderDash: [5, 5], borderWidth: 1.5, pointRadius: 0, fill: false },
-                { type: 'line', label: 'RC Boundaries', data: [{x: 0, y: rcThreshold}, {x: maxVal - rcThreshold, y: maxVal}], borderColor: '#bdbdbd', borderWidth: 1, pointRadius: 0, fill: false },
-                { type: 'line', label: 'RC Lower (Hidden)', data: [{x: rcThreshold, y: 0}, {x: maxVal, y: maxVal - rcThreshold}], borderColor: '#bdbdbd', borderWidth: 1, pointRadius: 0, fill: false }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            aspectRatio: 1,
-            scales: {
-                x: { 
-                    title: { display: true, text: (savedNames[preIndex] || "Pre-Test") + ' (' + measureName + ')', font: { weight: 'bold' } }, 
-                    // This pulls the number from your scaleMin box
-                    min: parseFloat(document.getElementById('scaleMin').value) || 0, 
-                    // This pulls the number from your scaleMax box
-                    max: parseFloat(document.getElementById('scaleMax').value) || 100, 
-                    ticks: { stepSize: 10 } 
+
+        ]
+    },
+
+    options: {
+
+        responsive: true,
+        maintainAspectRatio: true,
+        aspectRatio: 1,
+
+        scales: {
+
+            x: {
+
+                title: {
+                    display: true,
+                    text: (savedNames[preIndex] || 'Pre-test') + ' (' + measureName + ')',
+                    font: {
+                        weight: 'bold'
+                    }
                 },
-                y: { 
-                    title: { display: true, text: (savedNames[postIndex] || "Post-Test") + ' (' + measureName + ')', font: { weight: 'bold' } }, 
-                    min: parseFloat(document.getElementById('scaleMin').value) || 0, 
-                    max: parseFloat(document.getElementById('scaleMax').value) || 100, 
-                    ticks: { stepSize: 10 } 
+
+                min: parseFloat(document.getElementById('scaleMin').value) || 0,
+                max: parseFloat(document.getElementById('scaleMax').value) || 100,
+
+                ticks: {
+                    stepSize: 10
+                },
+
+                grid: {
+                    display: false
+                },
+
+                border: {
+                    color: '#000',
+                    width: 1
                 }
             },
-            plugins: {
-                legend: { 
-                        display: true, 
-                        position: 'bottom',
-                        labels: {
-                            // Accessibility: Filters out "Hidden" lines from the screen reader legend
-                            filter: function(item) { return item.text && !item.text.includes('(Hidden)'); },
-                            generateLabels: function(chart) {
-                                const original = Chart.defaults.plugins.legend.labels.generateLabels;
-                                const labels = original.call(this, chart);
-                                labels.forEach(label => {
-                                    // Accessibility: Differentiates status dots from boundary lines
-                                    label.pointStyle = (label.text.includes('Reliable')) ? 'circle' : 'line';
-                                });
-                                return labels;
-                            },
-                            usePointStyle: true
-                        }
+
+            y: {
+
+                title: {
+                    display: true,
+                    text: (savedNames[postIndex] || 'Post-test') + ' (' + measureName + ')',
+                    font: {
+                        weight: 'bold'
                     }
+                },
+
+                min: parseFloat(document.getElementById('scaleMin').value) || 0,
+                max: parseFloat(document.getElementById('scaleMax').value) || 100,
+
+                ticks: {
+                    stepSize: 10
+                },
+
+                grid: {
+                    display: false
+                },
+
+                border: {
+                    color: '#000',
+                    width: 1
+                }
             }
+        },
+
+        plugins: {
+
+            legend: {
+
+                display: true,
+                position: 'bottom',
+
+                labels: {
+
+                    filter: item => item.text,
+
+                    usePointStyle: true,
+
+                    padding: 15,
+
+                    generateLabels: function(chart) {
+
+    const labels =
+        Chart.defaults.plugins.legend.labels.generateLabels(chart);
+
+    labels.forEach(label => {
+
+        const ds = chart.data.datasets[label.datasetIndex];
+
+        if (!ds) return;
+
+        // Scatter points: preserve shape
+        if (ds.type === 'scatter') {
+            label.pointStyle = ds.pointStyle || 'circle';
+            label.strokeStyle = ds.backgroundColor || '#000';
+        }
+
+        // LINE datasets: FORCE visual match to chart line style
+        if (ds.type === 'line') {
+
+            label.pointStyle = 'line';
+
+            // 🔴 CRITICAL: match actual line appearance
+            label.strokeStyle = ds.borderColor || '#000';
+            label.lineWidth = ds.borderWidth || 1;
+            label.lineDash = ds.borderDash || [];
         }
     });
-    
- 
-    if (showCSC && activeThreshold) {
-        myChart.data.datasets.push(
-            { type: 'line', label: 'CSC Threshold', data: [{x: 0, y: activeThreshold}, {x: maxVal, y: activeThreshold}], borderColor: '#1565c0', borderWidth: 1.5, pointRadius: 0, fill: false },
-            { type: 'line', label: 'CSC Vert (Hidden)', data: [{x: activeThreshold, y: 0}, {x: activeThreshold, y: maxVal}], borderColor: '#1565c0', borderWidth: 1.5, pointRadius: 0, fill: false }
-        );
-        myChart.update();
+
+    return labels;
+}
+                }
+            }
+        }
     }
+});
+
+// Clinical significance cutoff
+if (showCSC && activeThreshold) {
+
+    myChart.data.datasets.push(
+
+        {
+            type: 'line',
+            label: 'Clinical significance cutoff',
+            data: [
+                { x: 0, y: activeThreshold },
+                { x: maxVal, y: activeThreshold }
+            ],
+            borderColor: '#000',
+            borderWidth: 1,
+            borderDash: [1,3],
+            pointRadius: 0,
+            fill: false
+        },
+
+        {
+            type: 'line',
+            label: '',
+            data: [
+                { x: activeThreshold, y: 0 },
+                { x: activeThreshold, y: maxVal }
+            ],
+            borderColor: '#000',
+            borderWidth: 1,
+            borderDash: [1,3],
+            pointRadius: 0,
+            fill: false
+        }
+    );
+
+    myChart.update();
+}
 
     // 6. INDIVIDUAL TABLE
     let countImp = 0, countDet = 0, countNC = 0, countCSC = 0;
